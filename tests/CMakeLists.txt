@@ -86,9 +86,10 @@ add_test(NAME glirps_tests COMMAND glirps_tests)
 # ThreadSanitizer can observe races inside GLIRPS. Also built into
 # `glirps_tests` against `glirps`.
 if(GLIRPS_ENABLE_TSAN)
+	# Does not compile `ScopedAllocationCounter.cpp`: its global `operator new`
+	# replacement would collide with the one ThreadSanitizer installs.
 	add_executable(glirps_tests_tsan
-		SynthConcurrencyTests.cpp
-		${glirps_test_support_sources})
+		SynthConcurrencyTests.cpp)
 	target_sources(glirps_tests_tsan
 		PRIVATE
 			${glirps_test_support_headers})

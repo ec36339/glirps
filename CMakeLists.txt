@@ -98,6 +98,8 @@ set_property(TARGET glirps PROPERTY VERIFY_INTERFACE_HEADER_SETS ON)
 # and consumers are not affected.
 if(MSVC)
 	set(glirps_compile_options /EHsc /WX)
+else()
+	set(glirps_compile_options -Werror)
 endif()
 target_compile_options(glirps PRIVATE ${glirps_compile_options})
 

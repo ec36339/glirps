@@ -14,7 +14,13 @@
 			"binaryDir": "${sourceDir}/out/build/${presetName}",
 			"cacheVariables": {
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-			}
+			},
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			},
+			"displayName": "Windows base"
 		},
 		{
 			"name": "debug",
@@ -33,6 +39,53 @@
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Release"
 			}
+		},
+		{
+			"name": "linux-base",
+			"hidden": true,
+			"displayName": "Linux base",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/out/build/${presetName}",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			},
+			"cacheVariables": {
+				"CMAKE_C_COMPILER": "clang-22",
+				"CMAKE_CXX_COMPILER": "clang++-22",
+				"CMAKE_CXX_FLAGS": "-stdlib=libc++",
+				"CMAKE_EXE_LINKER_FLAGS": "-stdlib=libc++ -lc++abi",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "linux-debug",
+			"displayName": "Linux Debug",
+			"description": "Linux Debug with Clang 22, libc++ and Ninja.",
+			"inherits": "linux-base",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "linux-release",
+			"displayName": "Linux Release",
+			"description": "Linux Release with Clang 22, libc++ and Ninja.",
+			"inherits": "linux-base",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
+			"name": "linux-tsan",
+			"displayName": "Linux TSan",
+			"description": "Linux Debug with Clang 22, libc++ and ThreadSanitizer-instrumented concurrency tests.",
+			"inherits": "linux-base",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"GLIRPS_ENABLE_TSAN": "ON"
+			}
 		}
 	],
 	"buildPresets": [
@@ -43,6 +96,18 @@
 		{
 			"name": "release",
 			"configurePreset": "release"
+		},
+		{
+			"name": "linux-debug",
+			"configurePreset": "linux-debug"
+		},
+		{
+			"name": "linux-release",
+			"configurePreset": "linux-release"
+		},
+		{
+			"name": "linux-tsan",
+			"configurePreset": "linux-tsan"
 		}
 	],
 	"testPresets": [
@@ -56,6 +121,27 @@
 		{
 			"name": "release",
 			"configurePreset": "release",
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "linux-debug",
+			"configurePreset": "linux-debug",
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "linux-release",
+			"configurePreset": "linux-release",
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "linux-tsan",
+			"configurePreset": "linux-tsan",
 			"output": {
 				"outputOnFailure": true
 			}

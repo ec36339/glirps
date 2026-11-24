@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Debug build, plus the check that every public header compiles on its own
+  # as C++20.
+  debug:
+    name: Build Debug and Check Headers
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-clang
+
+      - name: Configure
+        run: cmake --preset linux-debug
+
+      - name: Build
+        run: cmake --build --preset linux-debug
+
+      - name: Check public headers as C++20
+        run: cmake --build --preset linux-debug --target all_verify_interface_header_sets
+
+  # Release build and the only test run.
+  release:
+    name: Build and Test Release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-clang
+
+      - name: Configure
+        run: cmake --preset linux-release
+
+      - name: Build
+        run: cmake --build --preset linux-release
+
+      - name: Test
+        run: ctest --preset linux-release
+
+  tsan:
+    name: TSan Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-clang
+
+      # ThreadSanitizer's shadow memory layout needs a lower address-space
+      # randomization entropy than the runner image sets by default.
+      - name: Lower address-space randomization
+        run: sudo sysctl vm.mmap_rnd_bits=28
+
+      - name: Configure
+        run: cmake --preset linux-tsan
+
+      - name: Build
+        run: cmake --build --preset linux-tsan --target glirps_tests_tsan
+
+      # Selects the one built test by name: ctest registers every test
+      # executable at configure time, so the unbuilt ones are listed too.
+      - name: Test
+        run: ctest --preset linux-tsan -R "^glirps_tests_tsan$"
+
+  # The single check to mark as required in branch protection.
+  ci-result:
+    name: CI Result
+    if: always()
+    needs: [debug, release, tsan]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check job results
+        env:
+          DEBUG: ${{ needs.debug.result }}
+          RELEASE: ${{ needs.release.result }}
+          TSAN: ${{ needs.tsan.result }}
+        run: |
+          status=0
+          for entry in "debug:$DEBUG" "release:$RELEASE" "tsan:$TSAN"; do
+            name="${entry%%:*}"
+            result="${entry#*:}"
+            if [ "$result" != success ]; then
+              echo "::error::$name ended with result '$result'."
+              status=1
+            fi
+          done
+          exit $status
