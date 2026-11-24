@@ -1,0 +1,15 @@
+name: Set up Clang 22
+description: Installs Clang 22, libc++, and Ninja on a GitHub-hosted Ubuntu runner.
+
+runs:
+  using: composite
+  steps:
+    - name: Install Clang 22, libc++, and Ninja
+      shell: bash
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf -o llvm.sh https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 22
+        sudo apt-get update
+        sudo apt-get install -y clang-22 libc++-22-dev libc++abi-22-dev ninja-build
+        rm llvm.sh

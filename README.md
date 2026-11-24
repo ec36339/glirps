@@ -15,18 +15,26 @@ GLIRPS only synthesises. The *consumer*, the program that embeds it, supplies ev
 
 ## Requirements
 
-The setup described here is the Windows one. Linux is not covered yet; see [Linux](#linux).
+Windows:
 
-1. Windows with Visual Studio 2022 or later and its **C++ Clang Compiler for Windows** component. The build uses `clang-cl`, `lld-link`, and `llvm-mt` from that installation.
+1. Visual Studio 2022 or later with its **C++ Clang Compiler for Windows** component. The build uses `clang-cl`, `lld-link`, and `llvm-mt` from that installation.
 2. CMake 3.25 or later and Ninja.
-3. Git, to fetch GoogleTest when tests are built.
-4. Optional: Doxygen, for the API reference.
+
+Linux:
+
+1. Clang 22 with libc++ (`clang-22`, `libc++-22-dev`, `libc++abi-22-dev`).
+2. CMake 3.25 or later and Ninja.
+
+Both:
+
+1. Git, to fetch GoogleTest when tests are built.
+2. Optional: Doxygen, for the API reference.
 
 Building the library needs C++23. The public headers compile as C++20, so a consumer needs only C++20.
 
 ## Build
 
-Run these from the repository root. The presets find the toolchain themselves, so no developer prompt is needed.
+Run these from the repository root. On Windows the presets find the toolchain themselves, so no developer prompt is needed.
 
 ```
 cmake --preset debug
@@ -35,6 +43,42 @@ ctest --preset debug
 ```
 
 Use `release` in place of `debug` for an optimized build. Build trees go to `out/build/<preset>`.
+
+On Linux, use the presets with the `linux-` prefix:
+
+```
+cmake --preset linux-debug
+cmake --build --preset linux-debug
+ctest --preset linux-debug
+```
+
+| Preset | Platform | Build type |
+| --- | --- | --- |
+| `debug` | Windows | Debug |
+| `release` | Windows | Release |
+| `linux-debug` | Linux | Debug |
+| `linux-release` | Linux | Release |
+| `linux-tsan` | Linux | Debug with ThreadSanitizer |
+
+`cmake --list-presets` shows only the presets for the current platform.
+
+### Thread sanitizer
+
+The `linux-tsan` preset sets `GLIRPS_ENABLE_TSAN`. Build and run only the instrumented target:
+
+```
+cmake --preset linux-tsan
+cmake --build --preset linux-tsan --target glirps_tests_tsan
+ctest --preset linux-tsan -R "^glirps_tests_tsan$"
+```
+
+### Public header check
+
+The `all_verify_interface_header_sets` target compiles every public header on its own as C++20:
+
+```
+cmake --build --preset debug --target all_verify_interface_header_sets
+```
 
 ### Options
 
