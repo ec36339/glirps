@@ -104,10 +104,9 @@ namespace glirps
 	/// @param sample_rate_hz The output sample rate, in hertz.
 	/// @param oversampling_factor The internal oversampling factor, a positive integer. Oscillators, envelopes, and
 	///   filter run at this multiple of `sample_rate_hz`, so CPU cost grows with it.
-	/// @threading An `oversampling_factor` above the one given to @ref blockRendererCreate makes the renderer
-	///   allocate larger
-	///   buffers through the allocator callbacks of its environment, and a null return from them then terminates
-	///   the program.
+	/// @threading An `oversampling_factor` above the one given to
+	///   @ref glirps::blockRendererCreate "blockRendererCreate" makes the renderer allocate larger buffers through the
+	///   allocator callbacks of its environment, and a null return from them then terminates the program.
 	/// @ingroup blockRenderer
 	void blockRendererReconfigure(BlockRendererHandle renderer,
 		std::uint32_t sample_rate_hz,

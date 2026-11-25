@@ -203,9 +203,9 @@ namespace glirps
 	/// @param synth The synth to update.
 	/// @param mixer The callbacks to install, or null for the default mixer. The pointed-to struct is copied.
 	/// @pre No call to @ref synthRender is in progress.
-	/// @threading Called from the control side. `mixer` is copied and need not outlive the call. The callbacks
-	///   it names are called from the render side, and some getter callbacks, such as `get_channel_count`, also from
-	///   the control side. Their lifetime and thread rules are in @ref MixerCallbacks.
+	/// @threading Called from the control side. `mixer` is copied and need not outlive the call. The callbacks it names
+	///   are called from the render side, and some getter callbacks, such as `get_channel_count`, also from the control
+	///   side. Their lifetime and thread rules are in @ref glirps::MixerCallbacks "MixerCallbacks".
 	/// @relates MixerCallbacks
 	/// @ingroup synth
 	void synthSetMixer(SynthHandle synth, const MixerCallbacks* mixer) noexcept;
@@ -228,10 +228,11 @@ namespace glirps
 	/// @param onset_delay_base_ticks Base ticks to withhold the onset by.
 	/// @param initial Initial external control state.
 	/// @return The started instance, or a falsy result stating why it could not start.
-	/// @threading Called from the control side. `program` is borrowed, not copied: it SHALL stay alive and
-	///   unmodified until the first of @ref synthRelease for the returned instance, @ref synthConfigure, or @ref
-	///   synthDestroy. @ref synthIsComplete returning true does not end the borrow. A failed start does not retain
-	///   `program`.
+	/// @threading Called from the control side. `program` is borrowed, not copied: it SHALL stay alive and unmodified
+	///   until the first of @ref glirps::synthRelease "synthRelease" for the returned instance,
+	///   @ref glirps::synthConfigure "synthConfigure", or @ref glirps::synthDestroy "synthDestroy".
+	///   @ref glirps::synthIsComplete "synthIsComplete" returning true does not end the borrow. A failed start does not
+	///   retain `program`.
 	/// @relates StartResult
 	/// @ingroup synth
 	[[nodiscard]] StartResult synthStart(SynthHandle synth,
@@ -245,8 +246,8 @@ namespace glirps
 	/// @param synth The synth owning the instance.
 	/// @param instance The instance to query.
 	/// @return Whether the instance has finished or its handle is expired.
-	/// @threading Called from the control side. Does not end the borrow of the program passed to @ref synthStart;
-	///   only @ref synthRelease does.
+	/// @threading Called from the control side. Does not end the borrow of the program passed to
+	///   @ref glirps::synthStart "synthStart"; only @ref glirps::synthRelease "synthRelease" does.
 	/// @ingroup synth
 	[[nodiscard]] bool synthIsComplete(SynthHandle synth, ChipInstanceHandle instance) noexcept;
 
@@ -311,8 +312,8 @@ namespace glirps
 	/// @pre `instance` is live for the call to take effect; an expired handle is safe to pass.
 	/// @post If `instance` is expired, the call does nothing.
 	/// @threading Called from the control side. `blocks` and `sub_block_spans` are written during the call and not
-	///   retained. The consumer carries the blocks to the render
-	///   side, where they go to @ref synthApplyBlock.
+	///   retained. The consumer carries the blocks to the render side, where they go to
+	///   @ref glirps::synthApplyBlock "synthApplyBlock".
 	/// @relates TickSubBlockSpan
 	/// @ingroup synth
 	[[nodiscard]] std::uint32_t synthEvaluateTick(SynthHandle synth,
@@ -350,8 +351,9 @@ namespace glirps
 	/// @param output Caller-owned buffer receiving the mixed frames.
 	/// @pre `output` holds a whole number of sub-blocks, each @ref sub_block_frame_count frames times
 	///   @ref synthGetChannelCount channels.
-	/// @threading Called from the render side. Runs the callbacks of the installed mixer (@ref synthSetMixer) on
-	///   the calling thread. `output` is written during the call and not retained.
+	/// @threading Called from the render side. Runs the callbacks of the installed mixer
+	///   (@ref glirps::synthSetMixer "synthSetMixer") on the calling thread. `output` is written during the call and
+	///   not retained.
 	/// @ingroup synth
 	void synthRender(SynthHandle synth, shims::Span<float> output) noexcept;
 }
