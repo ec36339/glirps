@@ -1,1 +1,6 @@
+# Build trees and installed packages
 /out/
+
+# Local AI assistant settings
+CLAUDE.local.md
+.claude/settings.local.json
