@@ -1,4 +1,4 @@
-#include "WavWriter.hpp"
+#include "wav_writer.hpp"
 
 #include <glirps/constants.hpp>
 
@@ -15,8 +15,8 @@ namespace hello_wav
 		// `glirps::full_scale` maps to this 16-bit PCM value. 32767 rather than
 		// 32768 keeps the mapping symmetric, so positive full scale does not
 		// clip.
-		constexpr std::int16_t full_scale_pcm = 32767;
-		constexpr float pcm_clip_negative = -32768.0f;
+		constexpr std::int16_t full_scale_pcm = std::numeric_limits<std::int16_t>::max();
+		constexpr float pcm_clip_negative = static_cast<float>(std::numeric_limits<std::int16_t>::min());
 		constexpr float pcm_clip_positive = static_cast<float>(full_scale_pcm);
 
 		constexpr std::array<char, 4> riff_tag = {'R', 'I', 'F', 'F'};
@@ -24,19 +24,29 @@ namespace hello_wav
 		constexpr std::array<char, 4> fmt_tag = {'f', 'm', 't', ' '};
 		constexpr std::array<char, 4> data_tag = {'d', 'a', 't', 'a'};
 
-		constexpr std::uint32_t fmt_chunk_size = 16;
-		// Bytes the RIFF chunk holds besides the sample data.
-		constexpr std::uint32_t riff_header_size = 36;
 		constexpr std::uint16_t audio_format_pcm = 1;
 		constexpr std::uint16_t channel_count_mono = 1;
-		constexpr std::uint16_t bytes_per_sample = 2;
-		constexpr std::uint16_t bits_per_sample_pcm = 16;
+		constexpr std::uint32_t bits_per_byte = std::numeric_limits<unsigned char>::digits;
+		constexpr std::uint32_t byte_mask = std::numeric_limits<unsigned char>::max();
+		constexpr std::uint16_t bytes_per_sample = sizeof(std::int16_t);
+		constexpr std::uint16_t bits_per_sample_pcm = bytes_per_sample * bits_per_byte;
+		// Bytes of one frame: one sample per channel.
+		constexpr std::uint16_t block_align = channel_count_mono * bytes_per_sample;
+
+		// The fields of the format chunk: format, channel count, sample rate,
+		// byte rate, block alignment, and bits per sample.
+		constexpr std::uint32_t fmt_chunk_size = 4 * sizeof(std::uint16_t) + 2 * sizeof(std::uint32_t);
+		// A chunk starts with its tag and its size.
+		constexpr std::uint32_t chunk_header_size = fmt_tag.size() + sizeof(std::uint32_t);
+		// Bytes the RIFF chunk holds besides the sample data: the form type, the
+		// format chunk, and the header of the data chunk.
+		constexpr std::uint32_t riff_header_size
+			= wave_tag.size() + chunk_header_size + fmt_chunk_size + chunk_header_size;
 		// The RIFF chunk size, header included, is a 32-bit field.
 		constexpr std::size_t max_sample_count
 			= (std::numeric_limits<std::uint32_t>::max() - riff_header_size) / bytes_per_sample;
-
-		constexpr std::uint32_t byte_mask = 0xff;
-		constexpr std::uint32_t bits_per_byte = 8;
+		// So is the byte rate.
+		constexpr std::uint32_t max_sample_rate_hz = std::numeric_limits<std::uint32_t>::max() / block_align;
 
 		void writeTag(std::ofstream& file, const std::array<char, 4>& tag)
 		{
@@ -53,7 +63,7 @@ namespace hello_wav
 		void writeU32(std::ofstream& file, std::uint32_t value)
 		{
 			writeU16(file, static_cast<std::uint16_t>(value));
-			writeU16(file, static_cast<std::uint16_t>(value >> (2 * bits_per_byte)));
+			writeU16(file, static_cast<std::uint16_t>(value >> std::numeric_limits<std::uint16_t>::digits));
 		}
 	}
 
@@ -72,6 +82,8 @@ namespace hello_wav
 	{
 		if (samples.size() > max_sample_count)
 			return std::unexpected(WavWriteError::too_many_samples);
+		if (sample_rate_hz == 0 || sample_rate_hz > max_sample_rate_hz)
+			return std::unexpected(WavWriteError::unsupported_sample_rate);
 
 		std::ofstream file(path, std::ios::binary);
 		if (!file)
@@ -87,8 +99,8 @@ namespace hello_wav
 		writeU16(file, audio_format_pcm);
 		writeU16(file, channel_count_mono);
 		writeU32(file, sample_rate_hz);
-		writeU32(file, sample_rate_hz * bytes_per_sample);
-		writeU16(file, bytes_per_sample);
+		writeU32(file, sample_rate_hz * block_align);
+		writeU16(file, block_align);
 		writeU16(file, bits_per_sample_pcm);
 		writeTag(file, data_tag);
 		writeU32(file, data_size);

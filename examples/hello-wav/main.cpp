@@ -3,7 +3,7 @@
 //
 // Usage: hello-wav [output.wav]
 
-#include "WavWriter.hpp"
+#include "wav_writer.hpp"
 
 #include <glirps/glirps.hpp>
 #include <glirps/glirps_handles.hpp>
@@ -11,8 +11,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <expected>
 #include <filesystem>
+#include <print>
 #include <span>
+#include <utility>
+#include <variant>
 #include <vector>
 
 namespace
@@ -29,21 +33,25 @@ namespace
 	constexpr std::uint64_t seed = 1;
 	// C-4, in semitones above C-0.
 	constexpr std::int32_t note = 48;
+	constexpr const char* default_output_path = "hello.wav";
 
-	// Renders `program` until it is complete. Empty on failure.
-	std::vector<float> render(const glirps::SoundProgram& program)
+	// Why a rendering stopped: the error of the call that failed.
+	using RenderError = std::variant<glirps::CreateError, glirps::StartError>;
+
+	// Renders `program` until it is complete.
+	std::expected<std::vector<float>, RenderError> render(const glirps::SoundProgram& program)
 	{
 		// One instance with one voice.
 		const glirps::CreateResult created = glirps::synthCreate(1, 1);
 		if (!created)
-			return {};
+			return std::unexpected(created.error);
 		// Destroys the synth on return.
 		const glirps::SynthOwner synth(created.synth);
 		glirps::synthConfigure(created.synth, sample_rate_hz, glirps::default_oversampling_factor);
 
 		const auto started = glirps::synthStart(created.synth, program, seed);
 		if (!started)
-			return {};
+			return std::unexpected(started.error);
 
 		std::vector<float> samples;
 		for (std::uint32_t tick = 0; tick < max_ticks && !glirps::synthIsComplete(created.synth, started.instance);
@@ -65,11 +73,27 @@ namespace
 		glirps::synthRelease(created.synth, started.instance);
 		return samples;
 	}
+
+	void printRenderError(const RenderError& error)
+	{
+		if (const auto* create_error = std::get_if<glirps::CreateError>(&error))
+		{
+			std::println(stderr,
+				"hello-wav: creating the synth failed (CreateError {})",
+				std::to_underlying(*create_error));
+		}
+		else
+		{
+			std::println(stderr,
+				"hello-wav: starting the sound failed (StartError {})",
+				std::to_underlying(std::get<glirps::StartError>(error)));
+		}
+	}
 }
 
 int main(int argc, char** argv)
 {
-	const std::filesystem::path path = argc > 1 ? argv[1] : "hello.wav";
+	const std::filesystem::path path = argc > 1 ? argv[1] : default_output_path;
 
 	// A program points into storage the caller owns, here `voice`.
 	glirps::VoiceProgram voice;
@@ -87,17 +111,19 @@ int main(int argc, char** argv)
 	program.voices = &voice;
 	program.voice_count = 1;
 
-	const std::vector<float> samples = render(program);
-	if (samples.empty())
+	const auto samples = render(program);
+	if (!samples)
 	{
-		std::fputs("hello-wav: rendering failed\n", stderr);
+		printRenderError(samples.error());
 		return EXIT_FAILURE;
 	}
-	if (!hello_wav::writeWav(path, samples, sample_rate_hz))
+	if (const auto written = hello_wav::writeWav(path, *samples, sample_rate_hz); !written)
 	{
-		std::fputs("hello-wav: writing the WAV file failed\n", stderr);
+		std::println(stderr,
+			"hello-wav: writing the WAV file failed (WavWriteError {})",
+			std::to_underlying(written.error()));
 		return EXIT_FAILURE;
 	}
-	std::printf("Wrote %s\n", path.string().c_str());
+	std::println("Wrote {}", path.string());
 	return EXIT_SUCCESS;
 }
