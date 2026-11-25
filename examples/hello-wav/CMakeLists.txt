@@ -1,10 +1,10 @@
 add_executable(hello-wav
 	main.cpp
-	WavWriter.cpp)
+	wav_writer.cpp)
 
 target_sources(hello-wav
 	PRIVATE
-		WavWriter.hpp)
+		wav_writer.hpp)
 
 target_link_libraries(hello-wav
 	PRIVATE

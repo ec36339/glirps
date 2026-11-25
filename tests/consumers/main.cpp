@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -13,6 +14,7 @@
 int main()
 {
 	constexpr std::uint32_t sample_rate_hz = 48000;
+	constexpr std::size_t rendered_sub_block_count = 8;
 
 	const glirps::VoiceProgram voice;
 	glirps::SoundProgram program;
@@ -36,7 +38,7 @@ int main()
 		return EXIT_FAILURE;
 	glirps::synthApplyBlock(created.synth, block);
 
-	std::array<float, std::size_t{8} * glirps::sub_block_frame_count> samples{};
+	std::array<float, rendered_sub_block_count * glirps::sub_block_frame_count> samples{};
 	glirps::synthRender(created.synth, glirps::shims::toSpan(samples));
 	glirps::synthRelease(created.synth, started.instance);
 

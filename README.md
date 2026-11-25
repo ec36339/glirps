@@ -17,7 +17,7 @@ GLIRPS only synthesises. The *consumer*, the program that embeds it, supplies ev
 
 Windows:
 
-1. Visual Studio 2022 or later with its **C++ Clang Compiler for Windows** component. The build uses `clang-cl`, `lld-link`, and `llvm-mt` from that installation.
+1. Visual Studio 2022 or later with its **C++ Clang Compiler for Windows** component.
 2. CMake 3.25 or later and Ninja.
 
 Linux:
@@ -27,7 +27,7 @@ Linux:
 
 Both:
 
-1. Git, to fetch GoogleTest when tests are built. An installed GoogleTest is used instead when CMake finds one. If it does not work with the build, for example because it lacks GoogleMock or was built for another configuration or standard library, configure with `-DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=NEVER`.
+1. Git, to fetch GoogleTest when tests are built. If an installed GoogleTest does not work, configure with `-DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=NEVER`.
 2. Optional: Doxygen, for the API reference.
 
 Building the library needs C++23. The public headers compile as C++20, so a consumer needs only C++20.
@@ -62,11 +62,9 @@ ctest --preset linux-debug
 | `package` | Windows | Release, library only, installed |
 | `linux-package` | Linux | Release, library only, installed |
 
-`cmake --list-presets` shows only the presets for the current platform.
-
 ### Package
 
-The `package` and `linux-package` presets build the library with tests and examples off, and install the public headers, the library, and the CMake package files to `out/install/<preset>`:
+The `package` and `linux-package` presets build and install the library to `out/install/<preset>`:
 
 ```
 cmake --preset package
@@ -75,7 +73,7 @@ cmake --build --preset package
 
 To install somewhere else, set `CMAKE_INSTALL_PREFIX` when configuring.
 
-The presets build the Release configuration. On Windows, a Debug build of your project needs the Debug library too. Install it into the same prefix from a second build folder. It is named `glirpsd.lib`:
+The presets build the Release configuration. On Windows, a Debug build of your project needs the Debug library too. Install it into the same prefix from a second build folder:
 
 ```
 cmake --preset package -B out/build/package-debug -DCMAKE_BUILD_TYPE=Debug
@@ -98,11 +96,11 @@ On Linux, the program is `out/build/linux-release/examples/hello-wav/hello-wav`.
 
 ### Sound regression tests
 
-The golden hash tests and the `hello_wav_hash` test compare rendered output with stored hashes. They run with Clang and libc++ on x86-64 Linux only, because output can differ with the compiler and with the standard and math libraries. A failure prints the new hash. Change a stored hash only when the sound is meant to change, and say so in the pull request.
+Some tests compare rendered output with stored hashes. They run with Clang and libc++ on x86-64 Linux only. A failure prints the new hash. Change a stored hash only when the sound is meant to change, and say so in the pull request.
 
 ### Thread sanitizer
 
-The `linux-tsan` preset sets `GLIRPS_ENABLE_TSAN`. Build and run only the instrumented target:
+Run the ThreadSanitizer test:
 
 ```
 cmake --preset linux-tsan
@@ -110,23 +108,15 @@ cmake --build --preset linux-tsan --target glirps_tests_tsan
 ctest --preset linux-tsan -R "^glirps_tests_tsan$"
 ```
 
-### Public header check
-
-The `all_verify_interface_header_sets` target compiles every public header on its own as C++20:
-
-```
-cmake --build --preset debug --target all_verify_interface_header_sets
-```
-
 ### Options
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `GLIRPS_BUILD_TESTS` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Builds the `glirps_tests` executable and registers it with ctest. |
+| `GLIRPS_BUILD_TESTS` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Builds the tests. |
 | `GLIRPS_BUILD_EXAMPLES` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Builds the examples. |
 | `GLIRPS_INSTALL` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Adds the install rules and the CMake package. |
 | `GLIRPS_WARNINGS_AS_ERRORS` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Treats warnings in GLIRPS's own targets as errors. |
-| `GLIRPS_ENABLE_TSAN` | `OFF` | Builds `glirps_tsan` and `glirps_tests_tsan` with ThreadSanitizer. Needs a Clang toolchain with a TSan runtime, which is not available on Windows, so configuring fails there. See [Thread sanitizer](#thread-sanitizer). |
+| `GLIRPS_ENABLE_TSAN` | `OFF` | Builds the ThreadSanitizer test. Needs Clang; not available on Windows. |
 
 ### API reference
 
@@ -136,7 +126,7 @@ When Doxygen is found, the `glirps_docs` target generates the API reference from
 cmake --build --preset debug --target glirps_docs
 ```
 
-The HTML output goes to `out/build/debug/docs/html`; open `index.html` there. Doxygen warnings are errors.
+The HTML output goes to `out/build/debug/docs/html`; open `index.html` there.
 
 ## Using GLIRPS
 
@@ -200,7 +190,7 @@ glirps::synthDestroy(synth);
 
 `glirps_render.hpp` declares the block renderer, and the optional `glirps_handles.hpp` provides RAII owners for both handles. [The overview](docs/INDEX.md) says which header holds what.
 
-`glirps::shims::Span` and `glirps::shims::Array` are stand-ins for `std::span` and `std::array` with a guaranteed layout, used at the library boundary. Build a `Span` from a pointer and a count, from a `std::span`, or with `glirps::shims::toSpan(container)`.
+The GLIRPS API uses `glirps::shims::Span` and `glirps::shims::Array` in place of `std::span` and `std::array`. Build a `Span` from a pointer and a count, from a `std::span`, or with `glirps::shims::toSpan(container)`.
 
 ## Documentation
 

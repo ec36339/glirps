@@ -16,6 +16,8 @@ namespace hello_wav
 		file_write_failed,
 		// The samples do not fit the 32-bit sizes of a WAV file.
 		too_many_samples,
+		// The sample rate is zero, or its byte rate does not fit the header.
+		unsupported_sample_rate,
 	};
 
 	// Converts one float sample to 16-bit PCM: scales `glirps::full_scale` to

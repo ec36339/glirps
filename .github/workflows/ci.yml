@@ -1,5 +1,11 @@
 name: CI
 
+# An edit of a pull request's title or description gets a text-only run: it
+# builds nothing, checks the current title, and takes over the build results of
+# the same commit. A change of the target branch is not such an edit: it builds.
+# `check-earlier-builds.sh` tells the runs apart by this name.
+run-name: "${{ github.event.action == 'edited' && !github.event.changes.base && format('Text-only run: {0}', github.event.pull_request.title) || '' }}"
+
 on:
   push:
     branches:
@@ -7,11 +13,15 @@ on:
   pull_request:
     branches:
       - develop
-    # `edited` reruns the message check when the title changes.
+    # `edited` starts the text-only runs.
     types: [opened, synchronize, reopened, edited]
 
+# Every push to `develop` has its own group, so no run is dropped and each one
+# checks its commit messages. Text-only runs have their own group, so they do
+# not cancel builds.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: "ci-${{ github.event_name == 'push' && github.sha || github.ref }}\
+    ${{ github.event.action == 'edited' && !github.event.changes.base && '-text' || '' }}"
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -22,6 +32,7 @@ jobs:
   # as C++20.
   debug:
     name: Build Debug and Check Headers
+    if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +51,7 @@ jobs:
   # Release build and the only test run.
   release:
     name: Build and Test Release
+    if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +80,7 @@ jobs:
 
   tsan:
     name: TSan Tests
+    if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -93,6 +106,7 @@ jobs:
   # The library alone, with every optional part off and nothing to fetch.
   core:
     name: Core only
+    if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -116,6 +130,7 @@ jobs:
   # package.
   consumers:
     name: Consumers
+    if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     env:
       CONSUMER_ARGS: >-
@@ -149,6 +164,7 @@ jobs:
   # Each example builds and runs, and its output is unchanged.
   examples:
     name: Examples
+    if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -164,10 +180,34 @@ jobs:
       - name: Run and check the output
         run: ctest --preset linux-release -R "^hello_wav_hash$" --no-tests=error
 
-  # No binary files, no Git LFS, no large files, and clean commit messages.
+  # Text-only runs: the builds of this commit must have succeeded.
+  earlier-builds:
+    name: Earlier build results
+    if: github.event.action == 'edited' && !github.event.changes.base
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for the builds and check them
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/scripts/check-earlier-builds.sh "$HEAD_SHA"
+
+  # No binary files, no Git LFS, no large files, and clean commit messages. It
+  # runs after the other jobs, so it reads the title as late as possible.
   repository:
     name: Repository hygiene
+    if: ${{ !cancelled() }}
+    needs: [debug, release, tsan, core, consumers, examples, earlier-builds]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -184,41 +224,58 @@ jobs:
 
       # Only the commits this run adds, so a bad message already on `develop`
       # cannot fail every later run. The branch name and title become part of
-      # the merge commit message; both are empty on a push.
+      # the merge commit message; both are empty on a push. The title of the
+      # event may be outdated by now, so the current one is read.
       - name: Check commit messages
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
-          PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
-        run: >-
-          bash .github/scripts/check-commit-messages.sh "$BASE_SHA..HEAD"
-          "$BRANCH_NAME" "$PULL_REQUEST_TITLE"
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title=
+          if [[ -n $PULL_REQUEST ]]; then
+            title=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL_REQUEST" --jq .title)
+          fi
+          bash .github/scripts/check-commit-messages.sh "$BASE_SHA..HEAD" "$BRANCH_NAME" "$title"
 
   # The single check to mark as required in branch protection. Every other job
-  # belongs in `needs` and in the loop below.
+  # belongs in `needs` and in the loop below. It runs in every run: GitHub
+  # treats a skipped required check as passed.
   ci-result:
     name: CI Result
     if: always()
-    needs: [debug, release, tsan, core, consumers, examples, repository]
+    needs: [debug, release, tsan, core, consumers, examples, earlier-builds, repository]
     runs-on: ubuntu-24.04
     steps:
       - name: Check job results
         env:
+          TEXT_ONLY: ${{ github.event.action == 'edited' && !github.event.changes.base }}
           DEBUG: ${{ needs.debug.result }}
           RELEASE: ${{ needs.release.result }}
           TSAN: ${{ needs.tsan.result }}
           CORE: ${{ needs.core.result }}
           CONSUMERS: ${{ needs.consumers.result }}
           EXAMPLES: ${{ needs.examples.result }}
+          EARLIER_BUILDS: ${{ needs.earlier-builds.result }}
           REPOSITORY: ${{ needs.repository.result }}
         run: |
+          # A text-only run skips the builds and takes over earlier results.
+          # Every other run does the reverse.
+          builds=success
+          earlier=skipped
+          if [ "$TEXT_ONLY" = true ]; then
+            builds=skipped
+            earlier=success
+          fi
           status=0
-          for entry in "debug:$DEBUG" "release:$RELEASE" "tsan:$TSAN" "core:$CORE" \
-              "consumers:$CONSUMERS" "examples:$EXAMPLES" "repository:$REPOSITORY"; do
-            name="${entry%%:*}"
-            result="${entry#*:}"
-            if [ "$result" != success ]; then
-              echo "::error::$name ended with result '$result'."
+          for entry in "debug:$builds:$DEBUG" "release:$builds:$RELEASE" \
+              "tsan:$builds:$TSAN" "core:$builds:$CORE" \
+              "consumers:$builds:$CONSUMERS" "examples:$builds:$EXAMPLES" \
+              "earlier-builds:$earlier:$EARLIER_BUILDS" "repository:success:$REPOSITORY"; do
+            IFS=: read -r name expected result <<<"$entry"
+            if [ "$result" != "$expected" ]; then
+              echo "::error::$name ended with result '$result' instead of '$expected'."
               status=1
             fi
           done
