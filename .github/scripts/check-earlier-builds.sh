@@ -19,11 +19,12 @@ max_polls=${MAX_POLLS:-150}
 max_polls_without_run=6
 
 # The runs to skip have a name with this prefix; see `run-name` in `ci.yml`.
-# The other jobs are the ones that do not build.
+# The excluded jobs do not build; every other job is a build.
 runs_query='[.workflow_runs[] | select(.display_title | startswith("Text-only run: ") | not)]
 	| max_by(.run_number) | if . then "\(.id) \(.status)" else "" end'
 builds_query='.jobs[]
-	| select(.name != "Earlier build results" and .name != "Repository hygiene" and .name != "CI Result")
+	| select(.name != "Earlier build results" and .name != "Repository hygiene" and .name != "CI Result"
+		and .name != "Publish documentation")
 	| "\(.conclusion) \(.name)"'
 
 for ((poll = 1; poll <= max_polls; poll++)); do
