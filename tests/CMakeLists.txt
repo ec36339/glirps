@@ -108,3 +108,12 @@ if(GLIRPS_ENABLE_TSAN)
 			GTest::gtest_main)
 	add_test(NAME glirps_tests_tsan COMMAND glirps_tests_tsan)
 endif()
+
+# The hash of the example's output holds for the Linux toolchain only.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND TARGET hello-wav)
+	add_test(NAME hello_wav_hash
+		COMMAND ${CMAKE_COMMAND}
+			-DHELLO_WAV=$<TARGET_FILE:hello-wav>
+			-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/hello_wav.wav
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/hello_wav/CheckHash.cmake)
+endif()
