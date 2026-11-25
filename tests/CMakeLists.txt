@@ -4,7 +4,8 @@ FetchContent_Declare(
 	googletest
 	GIT_REPOSITORY https://github.com/google/googletest.git
 	GIT_TAG v1.15.2
-	GIT_SHALLOW TRUE)
+	GIT_SHALLOW TRUE
+	FIND_PACKAGE_ARGS NAMES GTest)
 
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
@@ -12,6 +13,12 @@ set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(googletest)
+
+if(NOT TARGET GTest::gmock)
+	message(FATAL_ERROR
+		"The installed GoogleTest has no GoogleMock. To build the pinned version instead, "
+		"configure with -DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=NEVER.")
+endif()
 
 set(glirps_test_sources
 	ApiTypeLayoutTests.cpp
@@ -29,6 +36,7 @@ set(glirps_test_sources
 	EnvelopeCrossRateTests.cpp
 	EnvelopeTests.cpp
 	EnvironmentTests.cpp
+	GoldenHashTests.cpp
 	GritStageTests.cpp
 	LfsrNoiseTests.cpp
 	LoggerTests.cpp
@@ -105,4 +113,28 @@ if(GLIRPS_ENABLE_TSAN)
 			GTest::gmock
 			GTest::gtest_main)
 	add_test(NAME glirps_tests_tsan COMMAND glirps_tests_tsan)
+endif()
+
+# The hash of the example's output holds for Clang with libc++ on x86-64 Linux
+# only, like the golden hashes.
+set(glirps_stored_hashes_apply OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+		AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
+	include(CheckCXXSourceCompiles)
+	# Compiling is enough to see which standard library is in use.
+	set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+	check_cxx_source_compiles("
+		#include <cstddef>
+		#ifndef _LIBCPP_VERSION
+		#error not libc++
+		#endif
+		int main() { return 0; }" GLIRPS_USES_LIBCXX)
+	set(glirps_stored_hashes_apply ${GLIRPS_USES_LIBCXX})
+endif()
+if(glirps_stored_hashes_apply AND TARGET hello-wav)
+	add_test(NAME hello_wav_hash
+		COMMAND ${CMAKE_COMMAND}
+			-DHELLO_WAV=$<TARGET_FILE:hello-wav>
+			-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/hello_wav.wav
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/hello_wav/CheckHash.cmake)
 endif()

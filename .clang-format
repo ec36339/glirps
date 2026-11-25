@@ -1,0 +1,99 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Tab indentation; spaces only for alignment in wrapped lines.
+# AlignWithSpaces (rather than Always) keeps indentation/continuation on tabs
+# but fills alignment gaps -- e.g. the trailing-comment gap -- with literal
+# spaces, so SpacesBeforeTrailingComments below produces exactly two space
+# characters instead of a tab-stop-dependent tab+space mix.
+UseTab:                        AlignWithSpaces
+TabWidth:                      4
+IndentWidth:                   4
+ContinuationIndentWidth:       4
+ConstructorInitializerIndentWidth: 4
+
+# Namespace and class bodies are indented one level each.
+NamespaceIndentation:          All
+# Access modifiers sit at the class-declaration level, one level back from
+# the class body.
+AccessModifierOffset:          -4
+IndentCaseLabels:              false
+IndentCaseBlocks:              false
+
+# Opening brace on the NEXT line for all constructs (Allman style).
+BreakBeforeBraces:             Allman
+
+# Single-line bodies are allowed for short trivial functions;
+# multi-line is used for anything longer than fits on one line.
+AllowShortBlocksOnASingleLine: Empty
+AllowShortEnumsOnASingleLine:  false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine:  false
+
+# ~100 columns preferred, hard limit 120. Enforced at 120.
+ColumnLimit:                   120
+
+# When arguments do not fit on one line, place each on its own line
+# indented by one level (DontAlign uses ContinuationIndentWidth, keeping
+# tabs-only indentation consistent with the indentation rules).
+AlignAfterOpenBracket:         DontAlign
+BinPackArguments:              false
+BinPackParameters:             false
+AllowAllArgumentsOnNextLine:   false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# Leading-comma style for constructor initializer lists.
+BreakConstructorInitializers:  BeforeComma
+PackConstructorInitializers:   Never
+
+# Leading-comma style for base-class lists mirrors initializer-list style.
+BreakInheritanceList:          BeforeComma
+
+# Template keyword and declaration are kept on separate lines.
+AlwaysBreakTemplateDeclarations: Yes
+
+# Pointer/reference qualifiers attach to the type, not the name.
+PointerAlignment:              Left
+ReferenceAlignment:            Left
+
+# No tabular mid-line alignment.
+AlignConsecutiveAssignments:   None
+AlignConsecutiveDeclarations:  None
+AlignConsecutiveMacros:        None
+AlignConsecutiveBitFields:     None
+# Operands wrap to the next line using ContinuationIndentWidth, not aligned
+# to the column of the operator on the left-hand side.
+AlignOperands:                 DontAlign
+# Binary operators break BEFORE the operator (leading-operator style), matching
+# the leading-comma convention used for initialisers and base lists.
+BreakBeforeBinaryOperators:    All
+BreakBeforeTernaryOperators:   true
+
+# No cross-line comment alignment.
+AlignTrailingComments:
+  Kind:                        Never
+
+# Exactly two spaces before an inline trailing comment.
+# Relies on UseTab: AlignWithSpaces above to keep the two-column gap as
+# literal spaces rather than a tab-stop-dependent tab+space mix.
+SpacesBeforeTrailingComments:  2
+
+# Standard operator/bracket spacing.
+SpaceBeforeParens:             ControlStatements
+SpaceInEmptyParentheses:       false
+SpaceBeforeCpp11BracedList:    false
+Cpp11BracedListStyle:          true
+SpaceAfterTemplateKeyword:     false
+SpaceAroundPointerQualifiers:  Default
+
+# Sort includes within each blank-line-separated group; preserve groups.
+SortIncludes:                  CaseSensitive
+IncludeBlocks:                 Preserve
+
+# No trailing annotation comments on closing braces.
+FixNamespaceComments:          false
+
+MaxEmptyLinesToKeep:           1
+KeepEmptyLinesAtTheStartOfBlocks: false

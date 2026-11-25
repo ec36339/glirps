@@ -86,6 +86,34 @@
 				"CMAKE_BUILD_TYPE": "Debug",
 				"GLIRPS_ENABLE_TSAN": "ON"
 			}
+		},
+		{
+			"name": "package",
+			"displayName": "Package",
+			"description": "Windows package of the library alone: headers, library, and CMake package.",
+			"inherits": "base",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+				"GLIRPS_BUILD_TESTS": "OFF",
+				"GLIRPS_BUILD_EXAMPLES": "OFF",
+				"GLIRPS_ENABLE_TSAN": "OFF",
+				"GLIRPS_INSTALL": "ON"
+			}
+		},
+		{
+			"name": "linux-package",
+			"displayName": "Linux Package",
+			"description": "Linux package of the library alone: headers, library, and CMake package.",
+			"inherits": "linux-base",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+				"GLIRPS_BUILD_TESTS": "OFF",
+				"GLIRPS_BUILD_EXAMPLES": "OFF",
+				"GLIRPS_ENABLE_TSAN": "OFF",
+				"GLIRPS_INSTALL": "ON"
+			}
 		}
 	],
 	"buildPresets": [
@@ -108,6 +136,16 @@
 		{
 			"name": "linux-tsan",
 			"configurePreset": "linux-tsan"
+		},
+		{
+			"name": "package",
+			"configurePreset": "package",
+			"targets": ["install"]
+		},
+		{
+			"name": "linux-package",
+			"configurePreset": "linux-package",
+			"targets": ["install"]
 		}
 	],
 	"testPresets": [

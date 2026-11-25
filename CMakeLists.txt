@@ -14,6 +14,25 @@ option(GLIRPS_BUILD_TESTS "Build the GLIRPS unit tests" ${glirps_build_tests_def
 # ThreadSanitizer. Needs a Clang toolchain with a TSan runtime (Linux).
 option(GLIRPS_ENABLE_TSAN "Build ThreadSanitizer-instrumented library and concurrency tests" OFF)
 
+set(glirps_warnings_as_errors_default OFF)
+if(PROJECT_IS_TOP_LEVEL)
+	set(glirps_warnings_as_errors_default ON)
+endif()
+option(GLIRPS_WARNINGS_AS_ERRORS "Treat warnings in GLIRPS's own targets as errors"
+	${glirps_warnings_as_errors_default})
+
+set(glirps_install_default OFF)
+if(PROJECT_IS_TOP_LEVEL)
+	set(glirps_install_default ON)
+endif()
+option(GLIRPS_INSTALL "Add install rules and the GLIRPS CMake package" ${glirps_install_default})
+
+set(glirps_build_examples_default OFF)
+if(PROJECT_IS_TOP_LEVEL)
+	set(glirps_build_examples_default ON)
+endif()
+option(GLIRPS_BUILD_EXAMPLES "Build the GLIRPS examples" ${glirps_build_examples_default})
+
 if(GLIRPS_ENABLE_TSAN AND WIN32)
 	message(FATAL_ERROR "GLIRPS_ENABLE_TSAN is not supported on Windows: LLVM provides no ThreadSanitizer runtime for it.")
 endif()
@@ -30,6 +49,11 @@ set(glirps_sources
 
 add_library(glirps STATIC ${glirps_sources})
 add_library(glirps::glirps ALIAS glirps)
+# A Debug library cannot be linked into a Release program with the MSVC ABI, or
+# the reverse, so both need their own file to share an install prefix.
+if(MSVC)
+	set_target_properties(glirps PROPERTIES DEBUG_POSTFIX d)
+endif()
 
 target_sources(glirps
 	PUBLIC
@@ -96,10 +120,27 @@ set_property(TARGET glirps PROPERTY VERIFY_INTERFACE_HEADER_SETS ON)
 
 # Warning and exception flags for GLIRPS's own targets only, so dependencies
 # and consumers are not affected.
+set(glirps_compile_options "")
 if(MSVC)
-	set(glirps_compile_options /EHsc /WX)
+	list(APPEND glirps_compile_options /EHsc)
+endif()
+if(GLIRPS_WARNINGS_AS_ERRORS)
+	if(MSVC)
+		list(APPEND glirps_compile_options /WX)
+	else()
+		list(APPEND glirps_compile_options -Werror)
+	endif()
+endif()
+# No floating-point contraction, so a compiler cannot fuse operations and
+# change rendered output.
+if(MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	# `clang-cl` uses the precise model by default but still contracts under
+	# it, and rejects an explicit `/fp:precise` next to this flag.
+	list(APPEND glirps_compile_options /clang:-ffp-contract=off)
+elseif(MSVC)
+	list(APPEND glirps_compile_options /fp:precise)
 else()
-	set(glirps_compile_options -Werror)
+	list(APPEND glirps_compile_options -ffp-contract=off)
 endif()
 target_compile_options(glirps PRIVATE ${glirps_compile_options})
 
@@ -133,6 +174,40 @@ if(DOXYGEN_FOUND)
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		COMMENT "Generating GLIRPS API documentation"
 		VERBATIM)
+endif()
+
+# The package holds the library, its public headers, and the files
+# `find_package(glirps CONFIG)` needs, and nothing else.
+if(GLIRPS_INSTALL)
+	include(GNUInstallDirs)
+	include(CMakePackageConfigHelpers)
+	set(glirps_package_dir ${CMAKE_INSTALL_LIBDIR}/cmake/glirps)
+
+	install(TARGETS glirps
+		EXPORT glirpsTargets
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+		INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+	install(EXPORT glirpsTargets
+		NAMESPACE glirps::
+		DESTINATION ${glirps_package_dir})
+
+	configure_package_config_file(cmake/glirpsConfig.cmake.in
+		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfig.cmake
+		INSTALL_DESTINATION ${glirps_package_dir})
+	# A 0.x minor version makes no compatibility promise.
+	write_basic_package_version_file(
+		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfigVersion.cmake
+		COMPATIBILITY SameMinorVersion)
+	install(FILES
+		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfig.cmake
+		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfigVersion.cmake
+		DESTINATION ${glirps_package_dir})
+endif()
+
+# Before the tests, which check an example's output.
+if(GLIRPS_BUILD_EXAMPLES)
+	add_subdirectory(examples)
 endif()
 
 if(GLIRPS_BUILD_TESTS)
