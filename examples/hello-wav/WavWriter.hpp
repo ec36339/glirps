@@ -14,11 +14,13 @@ namespace hello_wav
 		file_open_failed,
 		// A write to the open file failed or was short.
 		file_write_failed,
+		// The samples do not fit the 32-bit sizes of a WAV file.
+		too_many_samples,
 	};
 
 	// Converts one float sample to 16-bit PCM: scales `glirps::full_scale` to
 	// 32767, hard-clips to the representable range, rounds to nearest, and
-	// applies no dither.
+	// applies no dither. A NaN becomes 0.
 	[[nodiscard]] std::int16_t toPcm16(float sample) noexcept;
 
 	// Writes a mono 16-bit PCM WAV file from `samples` at `sample_rate_hz`.

@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <fstream>
+#include <limits>
 
 namespace hello_wav
 {
@@ -30,6 +31,9 @@ namespace hello_wav
 		constexpr std::uint16_t channel_count_mono = 1;
 		constexpr std::uint16_t bytes_per_sample = 2;
 		constexpr std::uint16_t bits_per_sample_pcm = 16;
+		// The RIFF chunk size, header included, is a 32-bit field.
+		constexpr std::size_t max_sample_count
+			= (std::numeric_limits<std::uint32_t>::max() - riff_header_size) / bytes_per_sample;
 
 		constexpr std::uint32_t byte_mask = 0xff;
 		constexpr std::uint32_t bits_per_byte = 8;
@@ -55,6 +59,9 @@ namespace hello_wav
 
 	std::int16_t toPcm16(float sample) noexcept
 	{
+		// Clamping and rounding give no defined result for a NaN.
+		if (std::isnan(sample))
+			return 0;
 		const float scaled = sample * (static_cast<float>(full_scale_pcm) / glirps::full_scale);
 		const float clipped = std::clamp(scaled, pcm_clip_negative, pcm_clip_positive);
 		return static_cast<std::int16_t>(std::lround(clipped));
@@ -63,6 +70,9 @@ namespace hello_wav
 	std::expected<void, WavWriteError>
 	writeWav(const std::filesystem::path& path, std::span<const float> samples, std::uint32_t sample_rate_hz)
 	{
+		if (samples.size() > max_sample_count)
+			return std::unexpected(WavWriteError::too_many_samples);
+
 		std::ofstream file(path, std::ios::binary);
 		if (!file)
 			return std::unexpected(WavWriteError::file_open_failed);
