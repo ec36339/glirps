@@ -141,15 +141,25 @@ jobs:
       - name: Run and check the output
         run: ctest --preset linux-release -R "^hello_wav_hash$" --no-tests=error
 
-  # No binary files, no Git LFS, and no large files.
+  # No binary files, no Git LFS, no large files, and clean commit messages.
   repository:
     name: Repository hygiene
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The commit message check needs the history.
+          fetch-depth: 0
 
       - name: Check the repository
         run: bash .github/scripts/check-repository.sh
+
+      # Only the commits this run adds, so a bad message already on `develop`
+      # cannot fail every later run.
+      - name: Check commit messages
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: bash .github/scripts/check-commit-messages.sh "$BASE_SHA..HEAD"
 
   # The single check to mark as required in branch protection. Every other job
   # belongs in `needs` and in the loop below.
