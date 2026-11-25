@@ -120,6 +120,17 @@ if(GLIRPS_WARNINGS_AS_ERRORS)
 		list(APPEND glirps_compile_options -Werror)
 	endif()
 endif()
+# No floating-point contraction, so a compiler cannot fuse operations and
+# change rendered output.
+if(MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	# `clang-cl` uses the precise model by default but still contracts under
+	# it, and rejects an explicit `/fp:precise` next to this flag.
+	list(APPEND glirps_compile_options /clang:-ffp-contract=off)
+elseif(MSVC)
+	list(APPEND glirps_compile_options /fp:precise)
+else()
+	list(APPEND glirps_compile_options -ffp-contract=off)
+endif()
 target_compile_options(glirps PRIVATE ${glirps_compile_options})
 
 # An opt-in ThreadSanitizer-instrumented build of the same sources. TSan only
