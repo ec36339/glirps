@@ -28,7 +28,7 @@ Linux:
 Both:
 
 1. Git, to fetch GoogleTest when tests are built. If an installed GoogleTest does not work, configure with `-DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=NEVER`.
-2. Optional: Doxygen, for the API reference and the guides.
+2. Optional: Doxygen, for the API reference and the guides. CI uses version 1.18.0.
 
 Building the library needs C++23. The public headers compile as C++20, so a consumer needs only C++20.
 
