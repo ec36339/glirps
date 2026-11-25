@@ -12,6 +12,8 @@ RECURSIVE              = YES
 USE_MDFILE_AS_MAINPAGE = docs/INDEX.md
 # The guides link to headings the way GitHub names them.
 MARKDOWN_ID_STYLE      = GITHUB
+# Page names, which the guides link to, are the same on every platform.
+CASE_SENSE_NAMES       = NO
 
 EXTRACT_ALL            = NO
 EXTRACT_PRIVATE        = NO
