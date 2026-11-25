@@ -28,7 +28,7 @@ Linux:
 Both:
 
 1. Git, to fetch GoogleTest when tests are built. If an installed GoogleTest does not work, configure with `-DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=NEVER`.
-2. Optional: Doxygen, for the API reference.
+2. Optional: Doxygen, for the API reference and the guides. CI uses version 1.18.0.
 
 Building the library needs C++23. The public headers compile as C++20, so a consumer needs only C++20.
 
@@ -120,7 +120,9 @@ ctest --preset linux-tsan -R "^glirps_tests_tsan$"
 
 ### API reference
 
-When Doxygen is found, the `glirps_docs` target generates the API reference from the public headers:
+The API reference and the guides of the `develop` branch are published at <https://ec36339.github.io/glirps/>.
+
+When Doxygen is found, the `glirps_docs` target generates them from the public headers and `docs`:
 
 ```
 cmake --build --preset debug --target glirps_docs

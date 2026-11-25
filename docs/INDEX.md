@@ -82,7 +82,7 @@ The entry points divide into a **control side** that decides what should be hear
 | Parameter smoothing | Render |
 | Mixing | Render |
 
-The consumer decides which thread runs which side, and carries parameter blocks from one to the other. Which calls belong to which side, and which may overlap, is stated in the [API reference](../README.md#api-reference).
+The consumer decides which thread runs which side, and carries parameter blocks from one to the other. Which calls belong to which side, and which may overlap, is stated in the [threading reference](https://ec36339.github.io/glirps/threading.html).
 
 ## Synth and block renderer
 
@@ -114,7 +114,7 @@ Every random value comes from a generator seeded by the seed given when the soun
 
 No guarantee is made across machines or compilers.
 
-## Grit
+## The grit stage
 
 The synthesis engine itself is character-neutral and runs at continuous resolution. All lo-fi character comes from one stage: after an effective tick is evaluated and before its parameter block is handed on, every numeric value is snapped onto a lattice whose step size comes from the grit profile's bit depths.
 

@@ -1,4 +1,4 @@
-# Doxygen configuration for the public GLIRPS headers.
+# Doxygen configuration for the public GLIRPS headers and the guides in `docs`.
 # Run from this folder; CMake target `glirps_docs` does so and sets the
 # output folder through the GLIRPS_DOCS_OUTPUT environment variable.
 
@@ -6,16 +6,22 @@ PROJECT_NAME           = "GLIRPS"
 PROJECT_BRIEF          = "Gritty Little Instrument for Retro Procedural Sounds: a synthesizer for chiptune-style sound effects. Build retro sounds in the spirit of the SID chip from waveforms, envelopes, and filters, with optional bit-crushed chip quantization, and render them to audio in real time"
 OUTPUT_DIRECTORY       = $(GLIRPS_DOCS_OUTPUT)
 
-INPUT                  = include
-FILE_PATTERNS          = *.hpp
+INPUT                  = include docs
+FILE_PATTERNS          = *.hpp *.md
 RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = docs/INDEX.md
+# The guides link to headings the way GitHub names them.
+MARKDOWN_ID_STYLE      = GITHUB
+# Page names, which the guides link to, are the same on every platform.
+CASE_SENSE_NAMES       = NO
 
 EXTRACT_ALL            = NO
 EXTRACT_PRIVATE        = NO
 EXTRACT_STATIC         = NO
+VERBATIM_HEADERS       = NO
 JAVADOC_AUTOBRIEF      = YES
 MARKDOWN_SUPPORT       = YES
-ALIASES                = "threading=\xrefitem post\"Threading\" \"Threading Reference\""
+ALIASES                = "threading=\xrefitem threading \"Threading\" \"Threading Reference\""
 
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO

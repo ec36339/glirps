@@ -180,6 +180,56 @@ jobs:
       - name: Run and check the output
         run: ctest --preset linux-release -R "^hello_wav_hash$" --no-tests=error
 
+  # The API reference and the guides. A Doxygen warning fails the build. The
+  # site of a pull request is a download only; `deploy` publishes `develop`.
+  docs:
+    name: Build documentation
+    if: github.event.action != 'edited' || github.event.changes.base
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-clang
+
+      # A pinned release: the version in Ubuntu's package cannot build the
+      # documentation. The checksum is the one GitHub publishes for the file.
+      - name: Install Doxygen
+        env:
+          DOXYGEN_VERSION: 1.18.0
+          DOXYGEN_SHA256: 14fa81bdc34171edb5f1f02b1d60e74802f0439b77fa44e592565d517d72df90
+        run: |
+          archive="doxygen-$DOXYGEN_VERSION.linux.bin.tar.gz"
+          release="Release_${DOXYGEN_VERSION//./_}"
+          curl --proto '=https' --tlsv1.2 -sSfL -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/doxygen/doxygen/releases/download/$release/$archive"
+          echo "$DOXYGEN_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP"
+          bin="$RUNNER_TEMP/doxygen-$DOXYGEN_VERSION/bin"
+          "$bin/doxygen" --version
+          echo "$bin" >>"$GITHUB_PATH"
+
+      # CMake leaves the target out if it finds no Doxygen, which fails the
+      # build step.
+      - name: Configure
+        run: cmake --preset linux-package
+
+      - name: Build
+        run: cmake --build --preset linux-package --target glirps_docs
+
+      - name: Attach the site to the run
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: glirps-docs
+          path: out/build/linux-package/docs/html
+          if-no-files-found: error
+
+      - name: Prepare the site for publishing
+        if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: out/build/linux-package/docs/html
+
   # Text-only runs: the builds of this commit must have succeeded.
   earlier-builds:
     name: Earlier build results
@@ -203,7 +253,7 @@ jobs:
   repository:
     name: Repository hygiene
     if: ${{ !cancelled() }}
-    needs: [debug, release, tsan, core, consumers, examples, earlier-builds]
+    needs: [debug, release, tsan, core, consumers, examples, docs, earlier-builds]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -240,12 +290,12 @@ jobs:
           bash .github/scripts/check-commit-messages.sh "$BASE_SHA..HEAD" "$BRANCH_NAME" "$title"
 
   # The single check to mark as required in branch protection. Every other job
-  # belongs in `needs` and in the loop below. It runs in every run: GitHub
-  # treats a skipped required check as passed.
+  # but `deploy`, which follows it, belongs in `needs` and in the loop below. It
+  # runs in every run: GitHub treats a skipped required check as passed.
   ci-result:
     name: CI Result
     if: always()
-    needs: [debug, release, tsan, core, consumers, examples, earlier-builds, repository]
+    needs: [debug, release, tsan, core, consumers, examples, docs, earlier-builds, repository]
     runs-on: ubuntu-24.04
     steps:
       - name: Check job results
@@ -257,6 +307,7 @@ jobs:
           CORE: ${{ needs.core.result }}
           CONSUMERS: ${{ needs.consumers.result }}
           EXAMPLES: ${{ needs.examples.result }}
+          DOCS: ${{ needs.docs.result }}
           EARLIER_BUILDS: ${{ needs.earlier-builds.result }}
           REPOSITORY: ${{ needs.repository.result }}
         run: |
@@ -272,6 +323,7 @@ jobs:
           for entry in "debug:$builds:$DEBUG" "release:$builds:$RELEASE" \
               "tsan:$builds:$TSAN" "core:$builds:$CORE" \
               "consumers:$builds:$CONSUMERS" "examples:$builds:$EXAMPLES" \
+              "docs:$builds:$DOCS" \
               "earlier-builds:$earlier:$EARLIER_BUILDS" "repository:success:$REPOSITORY"; do
             IFS=: read -r name expected result <<<"$entry"
             if [ "$result" != "$expected" ]; then
@@ -280,3 +332,42 @@ jobs:
             fi
           done
           exit $status
+
+  # Publishes the site of a push to `develop` that passed. A skipped job earlier
+  # in the chain would skip this one without the status function in `if`.
+  deploy:
+    name: Publish documentation
+    needs: ci-result
+    if: >-
+      !cancelled() && github.event_name == 'push' && needs.ci-result.result == 'success'
+    runs-on: ubuntu-24.04
+    # One publication at a time, and a running one is not cut off.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      # The runs of two pushes may finish in either order. Only the newest commit
+      # publishes, so an older one cannot replace its site.
+      - name: Check that this commit is the head of develop
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/develop" --jq .object.sha)
+          if [[ $head == "$GITHUB_SHA" ]]; then
+            echo "current=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "::notice::Not published: develop has moved on to $head."
+          fi
+
+      - name: Publish to GitHub Pages
+        id: publish
+        if: steps.head.outputs.current == 'true'
+        uses: actions/deploy-pages@v5

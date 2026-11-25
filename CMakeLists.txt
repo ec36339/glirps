@@ -161,10 +161,10 @@ if(GLIRPS_ENABLE_TSAN)
 	target_link_options(glirps_tsan PUBLIC -fsanitize=thread)
 endif()
 
-# Opt-in API documentation for the public headers, for GLIRPS as the top-level
-# project only: a project that adds GLIRPS gets the library alone. The target is
-# omitted when Doxygen is not installed, so configuring without it still
-# succeeds. The `Doxyfile` reads its output folder from the environment because
+# Opt-in documentation of the public headers and the guides, for GLIRPS as the
+# top-level project only: a project that adds GLIRPS gets the library alone. The
+# target is omitted when Doxygen is not installed, so configuring without it
+# still succeeds. The `Doxyfile` reads its output folder from the environment because
 # Doxygen has no command-line override.
 if(PROJECT_IS_TOP_LEVEL)
 	find_package(Doxygen QUIET)

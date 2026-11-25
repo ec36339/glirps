@@ -12,7 +12,7 @@ The functions are declared in `glirps_render.hpp`. The optional `glirps_handles.
 
 Creating, reconfiguring, and destroying can allocate, so a real-time consumer calls them while the audio thread is not rendering.
 
-## Voices
+## Renderer voices
 
 A block renderer always has `max_voices_per_instance` voices, which is 4, numbered from 0. Every `voice_index` argument must be below that. An out-of-range index terminates the program.
 
@@ -81,6 +81,6 @@ A consumer that renders on an audio thread calls every function on the handle fr
 
 Unlike `synthRender`, `blockRendererRender` does not set flush-to-zero or denormals-are-zero. A consumer that wants either sets it on the render thread.
 
-## Determinism
+## Renderer determinism
 
 Noise is the only random source. It comes from each voice's seed, so the same calls with the same seeds produce the same samples in one process, as for [the synth](INDEX.md#determinism).
