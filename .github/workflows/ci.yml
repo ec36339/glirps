@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - develop
+    # `edited` reruns the message check when the title changes.
+    types: [opened, synchronize, reopened, edited]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -86,11 +88,18 @@ jobs:
 
       - uses: ./.github/actions/setup-clang
 
+      # The dependency provider fails the configure if the core asks for any
+      # dependency.
       - name: Configure
-        run: cmake --preset linux-package -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+        run: >-
+          cmake --preset linux-package -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+          -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="$PWD/.github/cmake/forbid-dependencies.cmake"
 
       - name: Build and install
         run: cmake --build --preset linux-package
+
+      - name: Check the installed package
+        run: bash .github/scripts/check-core-package.sh out/build/linux-package out/install/linux-package
 
   # Other projects can use GLIRPS through FetchContent and as an installed
   # package.
@@ -108,7 +117,8 @@ jobs:
 
       - name: Build and run the FetchContent consumer
         run: |
-          cmake -S tests/consumers/fetch_content -B out/consumers/fetch_content $CONSUMER_ARGS             -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++ -lc++abi"
+          cmake -S tests/consumers/fetch_content -B out/consumers/fetch_content $CONSUMER_ARGS \
+            -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++ -lc++abi"
           cmake --build out/consumers/fetch_content
           out/consumers/fetch_content/consumer
 
@@ -119,7 +129,9 @@ jobs:
 
       - name: Build and run the find_package consumer
         run: |
-          cmake -S tests/consumers/find_package -B out/consumers/find_package $CONSUMER_ARGS             -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++ -lc++abi"             -DCMAKE_PREFIX_PATH="$PWD/out/install/linux-package"
+          cmake -S tests/consumers/find_package -B out/consumers/find_package $CONSUMER_ARGS \
+            -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++ -lc++abi" \
+            -DCMAKE_PREFIX_PATH="$PWD/out/install/linux-package"
           cmake --build out/consumers/find_package
           out/consumers/find_package/consumer
 
@@ -148,18 +160,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # The commit message check needs the history.
+          # Both checks need the history.
           fetch-depth: 0
 
-      - name: Check the repository
-        run: bash .github/scripts/check-repository.sh
+      # Pull requests only: every change reaches `develop` through one.
+      - name: Check added and modified files
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/scripts/check-repository.sh "$BASE_SHA..$HEAD_SHA"
 
       # Only the commits this run adds, so a bad message already on `develop`
-      # cannot fail every later run.
+      # cannot fail every later run. The branch name and title become part of
+      # the merge commit message; both are empty on a push.
       - name: Check commit messages
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: bash .github/scripts/check-commit-messages.sh "$BASE_SHA..HEAD"
+          BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
+          PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
+        run: >-
+          bash .github/scripts/check-commit-messages.sh "$BASE_SHA..HEAD"
+          "$BRANCH_NAME" "$PULL_REQUEST_TITLE"
 
   # The single check to mark as required in branch protection. Every other job
   # belongs in `needs` and in the loop below.
@@ -180,7 +202,8 @@ jobs:
           REPOSITORY: ${{ needs.repository.result }}
         run: |
           status=0
-          for entry in "debug:$DEBUG" "release:$RELEASE" "tsan:$TSAN" "core:$CORE"               "consumers:$CONSUMERS" "examples:$EXAMPLES" "repository:$REPOSITORY"; do
+          for entry in "debug:$DEBUG" "release:$RELEASE" "tsan:$TSAN" "core:$CORE" \
+              "consumers:$CONSUMERS" "examples:$EXAMPLES" "repository:$REPOSITORY"; do
             name="${entry%%:*}"
             result="${entry#*:}"
             if [ "$result" != success ]; then
