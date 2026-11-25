@@ -181,7 +181,7 @@ The values persist until the next call, a reset, or instance release. `synthUpda
 
 `synthUpdateControlParams`'s `reset_flags` names fields to instead restore to their authored state: `pitch_cents` to 0, `cutoff_hz` to the shared filter's authored cutoff (clearing the override), and `gain_multiplier` to 1. A field named in both `flags` and `reset_flags` in the same call resets; the `flags` value for that field is ignored. `synthStart` does not read `reset_flags`, since a freshly started instance already begins at the authored state it would restore.
 
-## Determinism
+## Instance determinism
 
 Everything random in an instance comes from the seed it was started with:
 

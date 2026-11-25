@@ -14,7 +14,7 @@ It is installed without any action, so a consumer that wants no spatial behaviou
 
 ## Installing a mixer
 
-A consumer installs a mixer with `synthSetMixer`, passing a `MixerCallbacks` struct: a `void*` context and four function pointers, `get_channel_count`, `begin_block`, `submit_instance`, and `end_block`, which map onto the channel count and the three phases below. A null pointer, or a struct with a null function pointer, selects the default mixer. `synthGetChannelCount` reports the installed mixer's channel count, so a consumer can size the buffer it passes to `synthRender`. The thread rules for each callback are in `MixerCallbacks` in the [API reference](../README.md#api-reference).
+A consumer installs a mixer with `synthSetMixer`, passing a `MixerCallbacks` struct: a `void*` context and four function pointers, `get_channel_count`, `begin_block`, `submit_instance`, and `end_block`, which map onto the channel count and the three phases below. A null pointer, or a struct with a null function pointer, selects the default mixer. `synthGetChannelCount` reports the installed mixer's channel count, so a consumer can size the buffer it passes to `synthRender`. The thread rules for each callback are in `MixerCallbacks` in the [API reference](https://ec36339.github.io/glirps/structglirps_1_1_mixer_callbacks.html).
 
 ## What a consumer mixer is for
 
