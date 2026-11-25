@@ -161,12 +161,15 @@ if(GLIRPS_ENABLE_TSAN)
 	target_link_options(glirps_tsan PUBLIC -fsanitize=thread)
 endif()
 
-# Opt-in API documentation for the public headers. The target is omitted when
-# Doxygen is not installed, so configuring without it still succeeds. The
-# `Doxyfile` reads its output folder from the environment because Doxygen has
-# no command-line override.
-find_package(Doxygen QUIET)
-if(DOXYGEN_FOUND)
+# Opt-in API documentation for the public headers, for GLIRPS as the top-level
+# project only: a project that adds GLIRPS gets the library alone. The target is
+# omitted when Doxygen is not installed, so configuring without it still
+# succeeds. The `Doxyfile` reads its output folder from the environment because
+# Doxygen has no command-line override.
+if(PROJECT_IS_TOP_LEVEL)
+	find_package(Doxygen QUIET)
+endif()
+if(PROJECT_IS_TOP_LEVEL AND DOXYGEN_FOUND)
 	add_custom_target(glirps_docs
 		COMMAND ${CMAKE_COMMAND} -E env
 			GLIRPS_DOCS_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/docs

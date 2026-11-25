@@ -130,7 +130,7 @@ cmake --build --preset debug --target all_verify_interface_header_sets
 
 ### API reference
 
-When Doxygen is found, the `glirps_docs` target generates the API reference from the public headers:
+When Doxygen is found and GLIRPS is the top-level project, the `glirps_docs` target generates the API reference from the public headers:
 
 ```
 cmake --build --preset debug --target glirps_docs

@@ -17,7 +17,7 @@ FetchContent_Declare(glirps
 	GIT_TAG v0.1.0)
 FetchContent_MakeAvailable(glirps)
 
-foreach(unwanted IN ITEMS glirps_tests glirps_tests_tsan hello-wav gtest)
+foreach(unwanted IN ITEMS glirps_tests glirps_tests_tsan hello-wav gtest glirps_docs)
 	if(TARGET ${unwanted})
 		message(FATAL_ERROR "A consumer must not get the target `${unwanted}`.")
 	endif()
