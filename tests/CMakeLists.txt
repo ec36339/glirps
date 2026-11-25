@@ -30,6 +30,7 @@ set(glirps_test_sources
 	EnvelopeCrossRateTests.cpp
 	EnvelopeTests.cpp
 	EnvironmentTests.cpp
+	GoldenHashTests.cpp
 	GritStageTests.cpp
 	LfsrNoiseTests.cpp
 	LoggerTests.cpp
