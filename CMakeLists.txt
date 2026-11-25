@@ -14,6 +14,13 @@ option(GLIRPS_BUILD_TESTS "Build the GLIRPS unit tests" ${glirps_build_tests_def
 # ThreadSanitizer. Needs a Clang toolchain with a TSan runtime (Linux).
 option(GLIRPS_ENABLE_TSAN "Build ThreadSanitizer-instrumented library and concurrency tests" OFF)
 
+set(glirps_warnings_as_errors_default OFF)
+if(PROJECT_IS_TOP_LEVEL)
+	set(glirps_warnings_as_errors_default ON)
+endif()
+option(GLIRPS_WARNINGS_AS_ERRORS "Treat warnings in GLIRPS's own targets as errors"
+	${glirps_warnings_as_errors_default})
+
 if(GLIRPS_ENABLE_TSAN AND WIN32)
 	message(FATAL_ERROR "GLIRPS_ENABLE_TSAN is not supported on Windows: LLVM provides no ThreadSanitizer runtime for it.")
 endif()
@@ -96,10 +103,16 @@ set_property(TARGET glirps PROPERTY VERIFY_INTERFACE_HEADER_SETS ON)
 
 # Warning and exception flags for GLIRPS's own targets only, so dependencies
 # and consumers are not affected.
+set(glirps_compile_options "")
 if(MSVC)
-	set(glirps_compile_options /EHsc /WX)
-else()
-	set(glirps_compile_options -Werror)
+	list(APPEND glirps_compile_options /EHsc)
+endif()
+if(GLIRPS_WARNINGS_AS_ERRORS)
+	if(MSVC)
+		list(APPEND glirps_compile_options /WX)
+	else()
+		list(APPEND glirps_compile_options -Werror)
+	endif()
 endif()
 target_compile_options(glirps PRIVATE ${glirps_compile_options})
 
