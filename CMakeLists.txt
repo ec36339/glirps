@@ -27,6 +27,12 @@ if(PROJECT_IS_TOP_LEVEL)
 endif()
 option(GLIRPS_INSTALL "Add install rules and the GLIRPS CMake package" ${glirps_install_default})
 
+set(glirps_build_examples_default OFF)
+if(PROJECT_IS_TOP_LEVEL)
+	set(glirps_build_examples_default ON)
+endif()
+option(GLIRPS_BUILD_EXAMPLES "Build the GLIRPS examples" ${glirps_build_examples_default})
+
 if(GLIRPS_ENABLE_TSAN AND WIN32)
 	message(FATAL_ERROR "GLIRPS_ENABLE_TSAN is not supported on Windows: LLVM provides no ThreadSanitizer runtime for it.")
 endif()
@@ -192,6 +198,11 @@ if(GLIRPS_INSTALL)
 		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfig.cmake
 		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfigVersion.cmake
 		DESTINATION ${glirps_package_dir})
+endif()
+
+# Before the tests, which check an example's output.
+if(GLIRPS_BUILD_EXAMPLES)
+	add_subdirectory(examples)
 endif()
 
 if(GLIRPS_BUILD_TESTS)
