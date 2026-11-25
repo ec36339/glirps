@@ -55,6 +55,17 @@ jobs:
       - name: Test
         run: ctest --preset linux-release
 
+      # A skipped hash test passes, so a wrong platform condition would turn the
+      # sound regression tests off unnoticed.
+      - name: Check that the golden hashes were compared
+        run: |
+          out/build/linux-release/tests/glirps_tests --gtest_filter='Programs/GoldenHashTests.*' >golden.log
+          grep -E '^\[  PASSED  \] [1-9]' golden.log
+          if grep -F SKIPPED golden.log; then
+            echo "::error::Golden hash tests were skipped."
+            exit 1
+          fi
+
   tsan:
     name: TSan Tests
     runs-on: ubuntu-24.04
