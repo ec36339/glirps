@@ -77,11 +77,86 @@ jobs:
       - name: Test
         run: ctest --preset linux-tsan -R "^glirps_tests_tsan$"
 
-  # The single check to mark as required in branch protection.
+  # The library alone, with every optional part off and nothing to fetch.
+  core:
+    name: Core only
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-clang
+
+      - name: Configure
+        run: cmake --preset linux-package -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+
+      - name: Build and install
+        run: cmake --build --preset linux-package
+
+  # Other projects can use GLIRPS through FetchContent and as an installed
+  # package.
+  consumers:
+    name: Consumers
+    runs-on: ubuntu-24.04
+    env:
+      CONSUMER_ARGS: >-
+        -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++-22
+        -DCMAKE_CXX_FLAGS=-stdlib=libc++
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-clang
+
+      - name: Build and run the FetchContent consumer
+        run: |
+          cmake -S tests/consumers/fetch_content -B out/consumers/fetch_content $CONSUMER_ARGS             -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++ -lc++abi"
+          cmake --build out/consumers/fetch_content
+          out/consumers/fetch_content/consumer
+
+      - name: Install the package
+        run: |
+          cmake --preset linux-package
+          cmake --build --preset linux-package
+
+      - name: Build and run the find_package consumer
+        run: |
+          cmake -S tests/consumers/find_package -B out/consumers/find_package $CONSUMER_ARGS             -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++ -lc++abi"             -DCMAKE_PREFIX_PATH="$PWD/out/install/linux-package"
+          cmake --build out/consumers/find_package
+          out/consumers/find_package/consumer
+
+  # Each example builds and runs, and its output is unchanged.
+  examples:
+    name: Examples
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-clang
+
+      - name: Configure
+        run: cmake --preset linux-release
+
+      - name: Build
+        run: cmake --build --preset linux-release --target hello-wav
+
+      - name: Run and check the output
+        run: ctest --preset linux-release -R "^hello_wav_hash$" --no-tests=error
+
+  # No binary files, no Git LFS, and no large files.
+  repository:
+    name: Repository hygiene
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the repository
+        run: bash .github/scripts/check-repository.sh
+
+  # The single check to mark as required in branch protection. Every other job
+  # belongs in `needs` and in the loop below.
   ci-result:
     name: CI Result
     if: always()
-    needs: [debug, release, tsan]
+    needs: [debug, release, tsan, core, consumers, examples, repository]
     runs-on: ubuntu-24.04
     steps:
       - name: Check job results
@@ -89,9 +164,13 @@ jobs:
           DEBUG: ${{ needs.debug.result }}
           RELEASE: ${{ needs.release.result }}
           TSAN: ${{ needs.tsan.result }}
+          CORE: ${{ needs.core.result }}
+          CONSUMERS: ${{ needs.consumers.result }}
+          EXAMPLES: ${{ needs.examples.result }}
+          REPOSITORY: ${{ needs.repository.result }}
         run: |
           status=0
-          for entry in "debug:$DEBUG" "release:$RELEASE" "tsan:$TSAN"; do
+          for entry in "debug:$DEBUG" "release:$RELEASE" "tsan:$TSAN" "core:$CORE"               "consumers:$CONSUMERS" "examples:$EXAMPLES" "repository:$REPOSITORY"; do
             name="${entry%%:*}"
             result="${entry#*:}"
             if [ "$result" != success ]; then
