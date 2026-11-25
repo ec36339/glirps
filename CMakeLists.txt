@@ -21,6 +21,12 @@ endif()
 option(GLIRPS_WARNINGS_AS_ERRORS "Treat warnings in GLIRPS's own targets as errors"
 	${glirps_warnings_as_errors_default})
 
+set(glirps_install_default OFF)
+if(PROJECT_IS_TOP_LEVEL)
+	set(glirps_install_default ON)
+endif()
+option(GLIRPS_INSTALL "Add install rules and the GLIRPS CMake package" ${glirps_install_default})
+
 if(GLIRPS_ENABLE_TSAN AND WIN32)
 	message(FATAL_ERROR "GLIRPS_ENABLE_TSAN is not supported on Windows: LLVM provides no ThreadSanitizer runtime for it.")
 endif()
@@ -146,6 +152,35 @@ if(DOXYGEN_FOUND)
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		COMMENT "Generating GLIRPS API documentation"
 		VERBATIM)
+endif()
+
+# The package holds the library, its public headers, and the files
+# `find_package(glirps CONFIG)` needs, and nothing else.
+if(GLIRPS_INSTALL)
+	include(GNUInstallDirs)
+	include(CMakePackageConfigHelpers)
+	set(glirps_package_dir ${CMAKE_INSTALL_LIBDIR}/cmake/glirps)
+
+	install(TARGETS glirps
+		EXPORT glirpsTargets
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+		INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+	install(EXPORT glirpsTargets
+		NAMESPACE glirps::
+		DESTINATION ${glirps_package_dir})
+
+	configure_package_config_file(cmake/glirpsConfig.cmake.in
+		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfig.cmake
+		INSTALL_DESTINATION ${glirps_package_dir})
+	# A 0.x minor version makes no compatibility promise.
+	write_basic_package_version_file(
+		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfigVersion.cmake
+		COMPATIBILITY SameMinorVersion)
+	install(FILES
+		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfig.cmake
+		${CMAKE_CURRENT_BINARY_DIR}/glirpsConfigVersion.cmake
+		DESTINATION ${glirps_package_dir})
 endif()
 
 if(GLIRPS_BUILD_TESTS)
