@@ -27,7 +27,7 @@ Linux:
 
 Both:
 
-1. Git, to fetch GoogleTest when tests are built.
+1. Git, to fetch GoogleTest when tests are built. An installed GoogleTest is used instead when CMake finds one.
 2. Optional: Doxygen, for the API reference.
 
 Building the library needs C++23. The public headers compile as C++20, so a consumer needs only C++20.
@@ -59,8 +59,39 @@ ctest --preset linux-debug
 | `linux-debug` | Linux | Debug |
 | `linux-release` | Linux | Release |
 | `linux-tsan` | Linux | Debug with ThreadSanitizer |
+| `package` | Windows | Release, library only, installed |
+| `linux-package` | Linux | Release, library only, installed |
 
 `cmake --list-presets` shows only the presets for the current platform.
+
+### Package
+
+The `package` and `linux-package` presets build the library with tests and examples off, and install the public headers, the library, and the CMake package files to `out/install/<preset>`:
+
+```
+cmake --preset package
+cmake --build --preset package
+```
+
+To install somewhere else, set `CMAKE_INSTALL_PREFIX` when configuring.
+
+### Examples
+
+| Example | What it shows |
+| --- | --- |
+| [`hello-wav`](examples/hello-wav/main.cpp) | The shortest path from a sound program to audio: one voice, rendered to a WAV file. |
+
+The `debug` and `release` presets build the examples. On Windows:
+
+```
+out/build/release/examples/hello-wav/hello-wav.exe hello.wav
+```
+
+On Linux, the program is `out/build/linux-release/examples/hello-wav/hello-wav`.
+
+### Sound regression tests
+
+The golden hash tests and the `hello_wav_hash` test compare rendered output with stored hashes. They run on Linux only, because output can differ with the standard and math libraries. A failure prints the new hash. Change a stored hash only when the sound is meant to change, and say so in the pull request.
 
 ### Thread sanitizer
 
@@ -85,7 +116,10 @@ cmake --build --preset debug --target all_verify_interface_header_sets
 | Option | Default | Effect |
 | --- | --- | --- |
 | `GLIRPS_BUILD_TESTS` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Builds the `glirps_tests` executable and registers it with ctest. |
-| `GLIRPS_ENABLE_TSAN` | `OFF` | Builds `glirps_tsan` and `glirps_tests_tsan` with ThreadSanitizer. Needs a Clang toolchain with a TSan runtime, which is not available on Windows, so configuring fails there. See [Linux](#linux). |
+| `GLIRPS_BUILD_EXAMPLES` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Builds the examples. |
+| `GLIRPS_INSTALL` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Adds the install rules and the CMake package. |
+| `GLIRPS_WARNINGS_AS_ERRORS` | `ON` when GLIRPS is the top-level project, otherwise `OFF` | Treats warnings in GLIRPS's own targets as errors. |
+| `GLIRPS_ENABLE_TSAN` | `OFF` | Builds `glirps_tsan` and `glirps_tests_tsan` with ThreadSanitizer. Needs a Clang toolchain with a TSan runtime, which is not available on Windows, so configuring fails there. See [Thread sanitizer](#thread-sanitizer). |
 
 ### API reference
 
@@ -97,18 +131,33 @@ cmake --build --preset debug --target glirps_docs
 
 The HTML output goes to `out/build/debug/docs/html`; open `index.html` there. Doxygen warnings are errors.
 
-## Linux
-
-TODO: Linux requirements, presets, and build instructions have not been added yet.
-
 ## Using GLIRPS
 
-Add the repository to a CMake project and link the `glirps::glirps` target. It is a static library, and it makes the public headers available as `<glirps/...>`:
+GLIRPS is a static library. Link the `glirps::glirps` target, which makes the public headers available as `<glirps/...>`. As a dependency of your project, GLIRPS builds the library only: no tests, no examples, and no warning flags for your code.
+
+With `FetchContent` (CMake 3.24 or later):
 
 ```cmake
-add_subdirectory(glirps)
+include(FetchContent)
+FetchContent_Declare(glirps
+	GIT_REPOSITORY https://github.com/ec36339/glirps.git
+	GIT_TAG v0.1.0
+	FIND_PACKAGE_ARGS CONFIG)
+FetchContent_MakeAvailable(glirps)
+
 target_link_libraries(my_game PRIVATE glirps::glirps)
 ```
+
+An installed package is used instead when CMake finds one. To build against a local checkout, set `FETCHCONTENT_SOURCE_DIR_GLIRPS` to its path.
+
+With an [installed package](#package), whose prefix is on `CMAKE_PREFIX_PATH`:
+
+```cmake
+find_package(glirps 0.1 CONFIG REQUIRED)
+target_link_libraries(my_game PRIVATE glirps::glirps)
+```
+
+A copy of the repository inside your source tree also works, with `add_subdirectory(glirps)`.
 
 The smallest path from a sound program to samples looks like this. The consumer builds the `SoundProgram` itself, and it must stay alive until the instance is released:
 
