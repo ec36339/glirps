@@ -1,4 +1,4 @@
-#include "GoldenProgramTestSupport.hpp"
+#include "golden_programs.hpp"
 
 #include "glirps/glirps_handles.hpp"
 

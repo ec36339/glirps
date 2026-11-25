@@ -55,14 +55,14 @@ set(glirps_test_sources
 	SynthSegmentTableTests.cpp)
 
 set(glirps_test_support_sources
-	support/GoldenProgramTestSupport.cpp
+	support/golden_programs.cpp
 	support/ScopedAllocationCounter.cpp)
 
 set(glirps_test_support_headers
 	support/BlockRendererApiTestSupport.hpp
 	support/ChipInstanceTestAccess.hpp
 	support/EnvironmentTestSupport.hpp
-	support/GoldenProgramTestSupport.hpp
+	support/golden_programs.hpp
 	support/ScopedAllocationCounter.hpp
 	support/SoundProgramTestSupport.hpp
 	support/SynthApiTestSupport.hpp)

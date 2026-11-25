@@ -1,5 +1,5 @@
-#include "GoldenProgramTestSupport.hpp"
 #include "SynthApiTestSupport.hpp"
+#include "golden_programs.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
