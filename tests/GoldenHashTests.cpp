@@ -25,9 +25,10 @@ namespace
 {
 	using glirps::test_support::TestProgramStorage;
 
-	// Floating-point output depends on the standard and math libraries, so the
-	// stored hashes hold for the Linux toolchain only.
-#ifdef __linux__
+	// Floating-point output depends on the compiler and on the standard and
+	// math libraries, so the stored hashes hold for Clang with libc++ on
+	// x86-64 Linux only.
+#if defined(__linux__) && defined(__x86_64__) && defined(__clang__) && defined(_LIBCPP_VERSION)
 	constexpr bool stored_hashes_apply = true;
 #else
 	constexpr bool stored_hashes_apply = false;
@@ -50,6 +51,11 @@ namespace
 		highpass,
 		notch,
 		tables,
+		pitch_offset_step,
+		pitch_offset_linear,
+		pitch_offset_catmull_rom,
+		pulse_width_delta,
+		resonance_table,
 	};
 
 	struct GoldenCase
@@ -60,6 +66,7 @@ namespace
 		float grit_scale = 1.0f;
 		std::uint64_t seed = 1;
 		std::uint32_t onset_delay_base_ticks = 0;
+		std::uint32_t tick_multiplier = 1;
 		std::uint64_t expected_hash = 0;
 	};
 
@@ -100,6 +107,28 @@ namespace
 		GoldenCase{.name = "variation_seed", .seed = 2, .expected_hash = 0xc761b08b9ed36c87ULL},
 		GoldenCase{.name = "grit_scale_zero", .grit_scale = 0.0f, .expected_hash = 0xef119eabf2dff12eULL},
 		GoldenCase{.name = "grit_scale_half", .grit_scale = 0.5f, .expected_hash = 0xce57a0a02a1e19afULL},
+		GoldenCase{.name = "pitch_offset_step",
+			.feature = Feature::pitch_offset_step,
+			.expected_hash = 0xd696600860d546f2ULL},
+		GoldenCase{.name = "pitch_offset_linear",
+			.feature = Feature::pitch_offset_linear,
+			.expected_hash = 0xc6fdcb4f24df6ad9ULL},
+		GoldenCase{.name = "pitch_offset_catmull_rom",
+			.feature = Feature::pitch_offset_catmull_rom,
+			.expected_hash = 0x7f222408240a124eULL},
+		// As `pitch_offset_linear`, with a control tick four times as often.
+		GoldenCase{.name = "tick_multiplier",
+			.feature = Feature::pitch_offset_linear,
+			.tick_multiplier = 4,
+			.expected_hash = 0x54b5441a8f3ab843ULL},
+		GoldenCase{.name = "pulse_width_delta",
+			.feature = Feature::pulse_width_delta,
+			.expected_hash = 0xc78942ae5b448f76ULL},
+		// As `filter_lowpass`, with an automated resonance.
+		GoldenCase{.name = "resonance_table",
+			.waveform = glirps::Waveform::sawtooth,
+			.feature = Feature::resonance_table,
+			.expected_hash = 0x7c5c465f862a86e6ULL},
 	};
 
 	void addFilter(glirps::SoundProgram& program, glirps::FilterModeSet modes)
@@ -109,11 +138,22 @@ namespace
 		program.filter.resonance_q = 4.0f;
 	}
 
+	// A pitch offset table of one segment, whose values are four base ticks
+	// apart.
+	glirps::Table<float> makePitchOffsetTable(TestProgramStorage& storage, glirps::InterpolationMode mode)
+	{
+		constexpr std::uint16_t interval = 4 * glirps::subticks_per_base_tick;
+		return glirps::test_support::makeSegmentTable<float>(storage,
+			{glirps::Segment{.value_count = 4, .interval_subticks = interval, .interpolation_mode = mode}},
+			{{0.0f, 0.0f}, {7.0f, 7.0f}, {-3.0f, -3.0f}, {5.0f, 5.0f}});
+	}
+
 	// Builds the program of `golden`. `storage` SHALL outlive every use of the
 	// returned program.
 	glirps::SoundProgram makeProgram(TestProgramStorage& storage, const GoldenCase& golden)
 	{
 		glirps::SoundProgram& program = storage.program;
+		program.grit.tick_multiplier = golden.tick_multiplier;
 		program.base_pitch = glirps::Pitch{.semitone = 45, .cents = 7};
 		program.gate.has_release_subtick = true;
 		program.gate.release_subtick = release_base_tick * glirps::subticks_per_base_tick;
@@ -194,6 +234,27 @@ namespace
 				= glirps::test_support::makeFloatTable(storage, {500.0f, 2000.0f, 6000.0f}, 0, 4);
 			break;
 		}
+		case Feature::pitch_offset_step:
+		case Feature::pitch_offset_linear:
+		case Feature::pitch_offset_catmull_rom:
+		{
+			const glirps::InterpolationMode mode = golden.feature == Feature::pitch_offset_step
+				? glirps::InterpolationMode::step
+				: golden.feature == Feature::pitch_offset_linear ? glirps::InterpolationMode::linear
+																 : glirps::InterpolationMode::catmull_rom;
+			voices.front().tables.has_pitch_offset = true;
+			voices.front().tables.pitch_offset = makePitchOffsetTable(storage, mode);
+			break;
+		}
+		case Feature::pulse_width_delta:
+			voices.front().tables.has_pulse_width_delta = true;
+			voices.front().tables.pulse_width_delta = glirps::test_support::makeFloatTable(storage, {0.02f});
+			break;
+		case Feature::resonance_table:
+			addFilter(program, {.lowpass = true});
+			program.filter.tables.has_resonance = true;
+			program.filter.tables.resonance = glirps::test_support::makeFloatTable(storage, {0.7f, 12.0f, 3.0f}, 0, 4);
+			break;
 		}
 
 		glirps::test_support::setVoices(storage, std::move(voices));
@@ -281,7 +342,7 @@ namespace
 TEST_P(GoldenHashTests, Render_GoldenProgram_MatchesStoredHash)
 {
 	if (!stored_hashes_apply)
-		GTEST_SKIP() << "Golden hashes are checked on Linux only.";
+		GTEST_SKIP() << "Golden hashes are checked with Clang and libc++ on x86-64 Linux only.";
 
 	// ARRANGE
 	const GoldenCase& golden = GetParam();
