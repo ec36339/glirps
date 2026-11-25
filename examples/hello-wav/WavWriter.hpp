@@ -23,7 +23,6 @@ namespace hello_wav
 
 	// Writes a mono 16-bit PCM WAV file from `samples` at `sample_rate_hz`.
 	// Each sample passes through `toPcm16`.
-	[[nodiscard]] std::expected<void, WavWriteError> writeWav(const std::filesystem::path& path,
-		std::span<const float> samples,
-		std::uint32_t sample_rate_hz);
+	[[nodiscard]] std::expected<void, WavWriteError>
+	writeWav(const std::filesystem::path& path, std::span<const float> samples, std::uint32_t sample_rate_hz);
 }

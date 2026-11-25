@@ -51,8 +51,9 @@ namespace
 		{
 			// With the default grit profile, each tick emits one block.
 			glirps::ParameterBlock block;
-			const std::uint32_t count = glirps::synthEvaluateTick(
-				created.synth, started.instance, glirps::shims::Span<glirps::ParameterBlock>(&block, 1));
+			const std::uint32_t count = glirps::synthEvaluateTick(created.synth,
+				started.instance,
+				glirps::shims::Span<glirps::ParameterBlock>(&block, 1));
 			if (count == 1)
 				glirps::synthApplyBlock(created.synth, block);
 

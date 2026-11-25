@@ -60,9 +60,8 @@ namespace hello_wav
 		return static_cast<std::int16_t>(std::lround(clipped));
 	}
 
-	std::expected<void, WavWriteError> writeWav(const std::filesystem::path& path,
-		std::span<const float> samples,
-		std::uint32_t sample_rate_hz)
+	std::expected<void, WavWriteError>
+	writeWav(const std::filesystem::path& path, std::span<const float> samples, std::uint32_t sample_rate_hz)
 	{
 		std::ofstream file(path, std::ios::binary);
 		if (!file)

@@ -63,44 +63,43 @@ namespace
 		std::uint64_t expected_hash = 0;
 	};
 
-	void PrintTo(const GoldenCase& golden, std::ostream* stream)
-	{
-		*stream << golden.name;
-	}
+	void PrintTo(const GoldenCase& golden, std::ostream* stream) { *stream << golden.name; }
 
 	constexpr std::array golden_cases = {
-		GoldenCase{.name = "triangle", .waveform = glirps::Waveform::triangle,
-			.expected_hash = 0x256eb3e210941382ULL},
-		GoldenCase{.name = "sawtooth", .waveform = glirps::Waveform::sawtooth,
-			.expected_hash = 0xcacf34b173303f31ULL},
-		GoldenCase{.name = "pulse",
-			.expected_hash = 0xcfe11c92e932715bULL},
-		GoldenCase{.name = "noise", .waveform = glirps::Waveform::noise,
-			.expected_hash = 0x930ce9d13ae18ddbULL},
-		GoldenCase{.name = "ring_modulation", .waveform = glirps::Waveform::triangle,
+		GoldenCase{.name = "triangle", .waveform = glirps::Waveform::triangle, .expected_hash = 0x256eb3e210941382ULL},
+		GoldenCase{.name = "sawtooth", .waveform = glirps::Waveform::sawtooth, .expected_hash = 0xcacf34b173303f31ULL},
+		GoldenCase{.name = "pulse", .expected_hash = 0xcfe11c92e932715bULL},
+		GoldenCase{.name = "noise", .waveform = glirps::Waveform::noise, .expected_hash = 0x930ce9d13ae18ddbULL},
+		GoldenCase{.name = "ring_modulation",
+			.waveform = glirps::Waveform::triangle,
 			.feature = Feature::ring_modulation,
 			.expected_hash = 0x006fbcb363e284f2ULL},
-		GoldenCase{.name = "hard_sync", .waveform = glirps::Waveform::sawtooth, .feature = Feature::hard_sync,
+		GoldenCase{.name = "hard_sync",
+			.waveform = glirps::Waveform::sawtooth,
+			.feature = Feature::hard_sync,
 			.expected_hash = 0x9205e60b1194afa7ULL},
-		GoldenCase{.name = "filter_lowpass", .waveform = glirps::Waveform::sawtooth, .feature = Feature::lowpass,
+		GoldenCase{.name = "filter_lowpass",
+			.waveform = glirps::Waveform::sawtooth,
+			.feature = Feature::lowpass,
 			.expected_hash = 0x0144da1fc5c62edaULL},
-		GoldenCase{.name = "filter_bandpass", .waveform = glirps::Waveform::sawtooth, .feature = Feature::bandpass,
+		GoldenCase{.name = "filter_bandpass",
+			.waveform = glirps::Waveform::sawtooth,
+			.feature = Feature::bandpass,
 			.expected_hash = 0x463d5a067bff5888ULL},
-		GoldenCase{.name = "filter_highpass", .waveform = glirps::Waveform::sawtooth, .feature = Feature::highpass,
+		GoldenCase{.name = "filter_highpass",
+			.waveform = glirps::Waveform::sawtooth,
+			.feature = Feature::highpass,
 			.expected_hash = 0xcbbf08ca1efb86cfULL},
-		GoldenCase{.name = "filter_notch", .waveform = glirps::Waveform::sawtooth, .feature = Feature::notch,
+		GoldenCase{.name = "filter_notch",
+			.waveform = glirps::Waveform::sawtooth,
+			.feature = Feature::notch,
 			.expected_hash = 0x8b7eb77263f0a6a2ULL},
-		GoldenCase{.name = "tables", .feature = Feature::tables,
-			.expected_hash = 0x378e0432f366f411ULL},
-		GoldenCase{.name = "onset_delay", .onset_delay_base_ticks = 5,
-			.expected_hash = 0x1a4cb7368962573bULL},
+		GoldenCase{.name = "tables", .feature = Feature::tables, .expected_hash = 0x378e0432f366f411ULL},
+		GoldenCase{.name = "onset_delay", .onset_delay_base_ticks = 5, .expected_hash = 0x1a4cb7368962573bULL},
 		// Seed 1, the default, draws no pitch step; this one draws a different one.
-		GoldenCase{.name = "variation_seed", .seed = 2,
-			.expected_hash = 0xc761b08b9ed36c87ULL},
-		GoldenCase{.name = "grit_scale_zero", .grit_scale = 0.0f,
-			.expected_hash = 0xef119eabf2dff12eULL},
-		GoldenCase{.name = "grit_scale_half", .grit_scale = 0.5f,
-			.expected_hash = 0xce57a0a02a1e19afULL},
+		GoldenCase{.name = "variation_seed", .seed = 2, .expected_hash = 0xc761b08b9ed36c87ULL},
+		GoldenCase{.name = "grit_scale_zero", .grit_scale = 0.0f, .expected_hash = 0xef119eabf2dff12eULL},
+		GoldenCase{.name = "grit_scale_half", .grit_scale = 0.5f, .expected_hash = 0xce57a0a02a1e19afULL},
 	};
 
 	void addFilter(glirps::SoundProgram& program, glirps::FilterModeSet modes)
@@ -171,11 +170,16 @@ namespace
 		{
 			glirps::VoiceTables& tables = voices.front().tables;
 			tables.has_waveform = true;
-			tables.waveform = glirps::test_support::makeWaveformTable(
-				storage, {glirps::Waveform::pulse, glirps::Waveform::sawtooth}, 0, 4);
+			tables.waveform = glirps::test_support::makeWaveformTable(storage,
+				{glirps::Waveform::pulse, glirps::Waveform::sawtooth},
+				0,
+				4);
 			tables.has_arpeggio = true;
-			tables.arpeggio = glirps::test_support::makeIntTable(
-				storage, {0, 4, 7}, 0, 2, {std::nullopt, glirps::ValueRange<std::int32_t>{.min = 2, .max = 5}});
+			tables.arpeggio = glirps::test_support::makeIntTable(storage,
+				{0, 4, 7},
+				0,
+				2,
+				{std::nullopt, glirps::ValueRange<std::int32_t>{.min = 2, .max = 5}});
 			tables.has_pitch_slide = true;
 			tables.pitch_slide = glirps::test_support::makeFloatTable(storage, {15.0f});
 			tables.has_pulse_width = true;
@@ -211,8 +215,7 @@ namespace
 			glirps::test_support::test_sample_rate_hz,
 			glirps::test_support::test_oversampling_factor);
 		glirps::synthSetGritScale(created.synth, golden.grit_scale);
-		const auto started
-			= glirps::synthStart(created.synth, program, golden.seed, golden.onset_delay_base_ticks);
+		const auto started = glirps::synthStart(created.synth, program, golden.seed, golden.onset_delay_base_ticks);
 		if (!started)
 			return {};
 
@@ -231,8 +234,7 @@ namespace
 				glirps::synthApplyBlock(created.synth, block);
 				++block_index;
 				const std::uint32_t end = sub_blocks_per_base_tick * block_index / written;
-				const std::size_t frames
-					= std::size_t{end - rendered_sub_blocks} * glirps::sub_block_frame_count;
+				const std::size_t frames = std::size_t{end - rendered_sub_blocks} * glirps::sub_block_frame_count;
 				rendered_sub_blocks = end;
 				if (frames == 0)
 					continue;

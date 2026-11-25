@@ -29,8 +29,9 @@ int main()
 		return EXIT_FAILURE;
 
 	glirps::ParameterBlock block;
-	if (glirps::synthEvaluateTick(
-			created.synth, started.instance, glirps::shims::Span<glirps::ParameterBlock>(&block, 1))
+	if (glirps::synthEvaluateTick(created.synth,
+			started.instance,
+			glirps::shims::Span<glirps::ParameterBlock>(&block, 1))
 		!= 1)
 		return EXIT_FAILURE;
 	glirps::synthApplyBlock(created.synth, block);
