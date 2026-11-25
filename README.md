@@ -27,7 +27,7 @@ Linux:
 
 Both:
 
-1. Git, to fetch GoogleTest when tests are built. An installed GoogleTest is used instead when CMake finds one.
+1. Git, to fetch GoogleTest when tests are built. An installed GoogleTest is used instead when CMake finds one. If it does not work with the build, for example because it lacks GoogleMock or was built for another configuration or standard library, configure with `-DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=NEVER`.
 2. Optional: Doxygen, for the API reference.
 
 Building the library needs C++23. The public headers compile as C++20, so a consumer needs only C++20.
@@ -75,6 +75,13 @@ cmake --build --preset package
 
 To install somewhere else, set `CMAKE_INSTALL_PREFIX` when configuring.
 
+The presets build the Release configuration. On Windows, a Debug build of your project needs the Debug library too. Install it into the same prefix from a second build folder. It is named `glirpsd.lib`:
+
+```
+cmake --preset package -B out/build/package-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build out/build/package-debug --target install
+```
+
 ### Examples
 
 | Example | What it shows |
@@ -91,7 +98,7 @@ On Linux, the program is `out/build/linux-release/examples/hello-wav/hello-wav`.
 
 ### Sound regression tests
 
-The golden hash tests and the `hello_wav_hash` test compare rendered output with stored hashes. They run on Linux only, because output can differ with the standard and math libraries. A failure prints the new hash. Change a stored hash only when the sound is meant to change, and say so in the pull request.
+The golden hash tests and the `hello_wav_hash` test compare rendered output with stored hashes. They run with Clang and libc++ on x86-64 Linux only, because output can differ with the compiler and with the standard and math libraries. A failure prints the new hash. Change a stored hash only when the sound is meant to change, and say so in the pull request.
 
 ### Thread sanitizer
 
@@ -142,13 +149,13 @@ include(FetchContent)
 FetchContent_Declare(glirps
 	GIT_REPOSITORY https://github.com/ec36339/glirps.git
 	GIT_TAG v0.1.0
-	FIND_PACKAGE_ARGS CONFIG)
+	FIND_PACKAGE_ARGS 0.1 CONFIG)
 FetchContent_MakeAvailable(glirps)
 
 target_link_libraries(my_game PRIVATE glirps::glirps)
 ```
 
-An installed package is used instead when CMake finds one. To build against a local checkout, set `FETCHCONTENT_SOURCE_DIR_GLIRPS` to its path.
+An installed package of the same minor version is used instead when CMake finds one. To build against a local checkout, set `FETCHCONTENT_SOURCE_DIR_GLIRPS` to its path.
 
 With an [installed package](#package), whose prefix is on `CMAKE_PREFIX_PATH`:
 

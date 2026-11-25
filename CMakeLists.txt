@@ -49,6 +49,11 @@ set(glirps_sources
 
 add_library(glirps STATIC ${glirps_sources})
 add_library(glirps::glirps ALIAS glirps)
+# A Debug library cannot be linked into a Release program with the MSVC ABI, or
+# the reverse, so both need their own file to share an install prefix.
+if(MSVC)
+	set_target_properties(glirps PROPERTIES DEBUG_POSTFIX d)
+endif()
 
 target_sources(glirps
 	PUBLIC
