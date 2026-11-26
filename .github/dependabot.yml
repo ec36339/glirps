@@ -1,0 +1,11 @@
+# Proposes updates for the pinned actions. The other pinned dependencies are
+# updated by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    # "/" covers the workflows only, so the local actions are listed too.
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    schedule:
+      interval: monthly

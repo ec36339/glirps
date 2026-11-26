@@ -35,7 +35,7 @@ jobs:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: ./.github/actions/setup-clang
 
@@ -53,7 +53,7 @@ jobs:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: ./.github/actions/setup-clang
 
@@ -82,7 +82,7 @@ jobs:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: ./.github/actions/setup-clang
 
@@ -108,7 +108,7 @@ jobs:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: ./.github/actions/setup-clang
 
@@ -136,7 +136,7 @@ jobs:
         -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++-22
         -DCMAKE_CXX_FLAGS=-stdlib=libc++
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: ./.github/actions/setup-clang
 
@@ -166,7 +166,7 @@ jobs:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: ./.github/actions/setup-clang
 
@@ -186,7 +186,7 @@ jobs:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: ./.github/actions/setup-clang
 
@@ -217,7 +217,7 @@ jobs:
 
       - name: Attach the site to the run
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: glirps-docs
           path: out/build/linux-package/docs/html
@@ -225,7 +225,7 @@ jobs:
 
       - name: Prepare the site for publishing
         if: github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: out/build/linux-package/docs/html
 
@@ -239,7 +239,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Wait for the builds and check them
         env:
@@ -259,7 +259,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # All checks need the history.
           fetch-depth: 0
@@ -398,4 +398,4 @@ jobs:
       - name: Publish to GitHub Pages
         id: publish
         if: steps.head.outputs.current == 'true'
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
