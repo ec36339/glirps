@@ -247,8 +247,9 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: bash .github/scripts/check-earlier-builds.sh "$HEAD_SHA"
 
-  # No binary files, no Git LFS, no large files, and clean commit messages. It
-  # runs after the other jobs, so it reads the title as late as possible.
+  # No secrets, no binary files, no Git LFS, no large files, and clean commit
+  # messages. It runs after the other jobs, so it reads the title as late as
+  # possible.
   repository:
     name: Repository hygiene
     if: ${{ !cancelled() }}
@@ -260,8 +261,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Both checks need the history.
+          # All checks need the history.
           fetch-depth: 0
+
+      # A pinned release. The checksum is the one GitHub publishes for the file.
+      - name: Install Gitleaks
+        if: github.event_name == 'pull_request'
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --proto '=https' --tlsv1.2 -sSfL -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v$GITLEAKS_VERSION/$archive"
+          echo "$GITLEAKS_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
+
+      # Scans each commit on its own, so it also finds a secret that a later
+      # commit removes. Merges are compared with their first parent, as git
+      # otherwise shows no changes for them.
+      - name: Scan for secrets
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Gitleaks passes even if git rejects the range, so git checks it
+          # first.
+          git rev-list "$BASE_SHA..$HEAD_SHA" -- >/dev/null
+          "$RUNNER_TEMP/gitleaks" git --redact --verbose \
+            --log-opts="--diff-merges=first-parent $BASE_SHA..$HEAD_SHA" .
 
       # Pull requests only: every change reaches `develop` through one.
       - name: Check added and modified files
