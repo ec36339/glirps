@@ -10,7 +10,7 @@ namespace glirps
 	/// How a value is mapped onto its quantization step.
 	enum class SteppingMode
 	{
-		/// Drops the low bits. Reference-hardware behaviour.
+		/// Drops the low bits. Reference-hardware behavior.
 		truncate,
 		/// Snaps to the nearest step rather than the one below.
 		round,
@@ -43,14 +43,13 @@ namespace glirps
 		std::uint32_t gain = reference_gain_bits;
 	};
 
-	/// The quantization and stepping parameter set applied at each control
-	/// tick. `tick_multiplier` sets the control grid rate and so the result of
-	/// `synthGetBlocksPerBaseTick`; `stepping_mode` and `bit_depths` drive the
-	/// quantization of every evaluated parameter.
+	/// The quantization and stepping parameter set applied at each effective
+	/// tick. `tick_multiplier` sets the result of `synthGetBlocksPerBaseTick`;
+	/// `stepping_mode` and `bit_depths` drive the quantization of every
+	/// evaluated parameter.
 	struct GritProfile
 	{
-		/// Multiplies `control_grid_base_rate_hz` to give the effective tick
-		/// rate.
+		/// Effective ticks per base tick.
 		std::uint32_t tick_multiplier = 1;
 		/// How each quantized value is mapped onto its step.
 		SteppingMode stepping_mode = SteppingMode::truncate;

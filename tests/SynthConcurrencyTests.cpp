@@ -15,7 +15,6 @@ namespace
 	constexpr std::uint32_t test_oversampling_factor_synth_concurrency = 16;
 	constexpr int start_release_iteration_count = 20000;
 
-	// `storage` SHALL outlive every use of the returned `SoundProgram`.
 	glirps::SoundProgram makeMinimalProgramSynthConcurrency(glirps::test_support::TestProgramStorage& storage)
 	{
 		storage.program.base_pitch = glirps::Pitch{.semitone = 36, .cents = 0};
@@ -31,11 +30,8 @@ namespace
 	}
 }
 
-// Concurrency tier: real threads under ThreadSanitizer, proving race freedom
-// only, with no golden-value assertion. Drives the free functions in
-// `glirps/glirps.hpp`: `synthStart`/`synthRelease` (control side, this test's
-// main thread) publish slot activation and generation; `synthRender` (render
-// side, a second real thread) reads them every call.
+// Checks for data races between `synthStart`/`synthRelease` and `synthRender`
+// on two threads. Only the ThreadSanitizer build detects them.
 TEST(SynthConcurrencyTests, StartReleaseOnControlThread_RenderOnRenderThread_NoRace)
 {
 	// ARRANGE
@@ -50,7 +46,7 @@ TEST(SynthConcurrencyTests, StartReleaseOnControlThread_RenderOnRenderThread_NoR
 	// ACT: the render thread repeatedly scans and renders every live slot,
 	// exactly as the audio callback thread would; the main thread repeatedly
 	// starts and immediately releases an instance without waiting for
-	// completion, maximising how often slot activation and generation
+	// completion, maximizing how often slot activation and generation
 	// change while the render thread may be observing them.
 	std::thread render_thread(
 		[synth, &stop]
@@ -69,9 +65,7 @@ TEST(SynthConcurrencyTests, StartReleaseOnControlThread_RenderOnRenderThread_NoR
 	stop.store(true);
 	render_thread.join();
 
-	// ASSERT: nothing to assert beyond reaching here. This test's only
-	// purpose is race detection under -fsanitize=thread; a real race aborts
-	// the process before this point; the concurrency tier asserts nothing else.
+	// ASSERT: ThreadSanitizer fails the test if it detects a race.
 	SUCCEED();
 
 	glirps::synthDestroy(synth);

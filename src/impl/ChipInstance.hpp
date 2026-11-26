@@ -17,10 +17,7 @@
 
 namespace glirps::impl
 {
-	// Test-only accessor for `ChipInstance`'s smoothed ramp state, defined in
-	// the test target rather than in `glirps`; `ChipInstance` only befriends
-	// it, so production code gains no accessor. The friend declaration below
-	// is the only production footprint.
+	// Defined in the test target.
 	struct ChipInstanceTestAccess;
 
 	// The 64-bit seed is truncated to the LFSR's 32-bit input width.
@@ -45,9 +42,8 @@ namespace glirps::impl
 		Envelope envelope;
 		Waveform waveform = Waveform::triangle;
 		float pulse_width = 0.5f;
-		// Per-voice gain is ramped over one sub-block to avoid zipper
-		// noise: `gain_current` is what the render path reads, stepped
-		// toward `gain_target` by `gain_increment` each output sample.
+		// `gain_current` is what the render path reads, stepped toward
+		// `gain_target` by `gain_increment` each output sample.
 		float gain_target = 1.0f;
 		float gain_current = 1.0f;
 		float gain_increment = 0.0f;
@@ -133,9 +129,7 @@ namespace glirps::impl
 		}
 
 		// Reseeds one voice's noise register from `seed`, leaving every
-		// other voice field untouched. Used by `Synth::start` to seed every
-		// voice of a reused slot's renderer from the instance's own
-		// `instance_seed`, so a given seed always reproduces the same sound.
+		// other voice field untouched.
 		void seedVoiceNoise(std::uint32_t voice_index, std::uint32_t seed) noexcept
 		{
 			voices_.at(voice_index).noise = LfsrNoise(seed);
@@ -152,8 +146,7 @@ namespace glirps::impl
 		}
 
 		// Selects one voice's envelope from durations in seconds and a sustain
-		// level. Converted to per-sample rates once here, at the rate the chip
-		// was constructed at.
+		// level. Converted to per-sample rates once here.
 		void setVoiceEnvelopeSeconds(std::uint32_t voice_index,
 			float attack_seconds,
 			float decay_seconds,
@@ -172,11 +165,7 @@ namespace glirps::impl
 
 		// Applies one voice's parameters from a parameter block, without
 		// reseeding its noise register. The seed is fixed at `start`, so the
-		// instance stays deterministic. Waveform and frequency step
-		// immediately, since smoothing pitch would destroy the stepped
-		// arpeggio character; pulse width is not smoothed either and steps
-		// immediately too; gain is ramped to `gain` over one sub-block to
-		// avoid zipper noise.
+		// instance stays deterministic.
 		void setVoiceParameters(std::uint32_t voice_index,
 			Waveform waveform,
 			float frequency_hz,
@@ -194,8 +183,7 @@ namespace glirps::impl
 		}
 
 		// Snaps one voice's parameters directly to the given values with no
-		// ramp on gain, so the first render does not ramp in from whatever a
-		// reused slot last held. Waveform, frequency, and pulse width are never
+		// ramp on gain. Waveform, frequency, and pulse width are never
 		// ramped, so this differs from `setVoiceParameters` only in the gain
 		// path.
 		void resetVoiceParameters(std::uint32_t voice_index,
@@ -277,9 +265,8 @@ namespace glirps::impl
 		}
 
 		// Sets the shared filter's cutoff, resonance, and modes from a
-		// parameter block: modes step immediately, since only cutoff,
-		// resonance, and gain are smoothed; cutoff and resonance ramp to their
-		// targets over one sub-block to avoid zipper noise.
+		// parameter block: cutoff and resonance ramp to their targets over one
+		// sub-block.
 		// Saturation is not a per-tick field of `ParameterBlock` and is
 		// untouched here; `setFilterSaturation` is the instance-lifetime entry
 		// point for it.
@@ -293,8 +280,7 @@ namespace glirps::impl
 		}
 
 		// Snaps the shared filter's cutoff, resonance, and modes directly with
-		// no ramp, so the first render does not ramp in from whatever a reused
-		// slot last held.
+		// no ramp.
 		void resetFilterBlock(float cutoff_hz, float resonance_q, FilterModeSet modes) noexcept
 		{
 			modes_ = modes;
@@ -310,7 +296,7 @@ namespace glirps::impl
 		void setFilterSaturation(float saturation) noexcept { saturation_ = saturation; }
 
 		// Sets the shared output gain from a parameter block, ramping to
-		// `gain` over one sub-block to avoid zipper noise.
+		// `gain` over one sub-block.
 		void applyOutputGain(float gain) noexcept
 		{
 			output_gain_target_ = gain;
@@ -318,9 +304,7 @@ namespace glirps::impl
 				= (output_gain_target_ - output_gain_current_) / static_cast<float>(sub_block_frame_count);
 		}
 
-		// Snaps the shared output gain directly to `gain` with no ramp, so
-		// the first render does not ramp in from whatever a reused slot last
-		// held.
+		// Snaps the shared output gain directly to `gain` with no ramp.
 		void resetOutputGain(float gain) noexcept
 		{
 			output_gain_current_ = output_gain_target_ = gain;
@@ -399,14 +383,7 @@ namespace glirps::impl
 			return output * nominal_level_linear_ * output_gain_current_;
 		}
 
-		// Returns the whole instance to a cleared state: every
-		// voice inactive with a zeroed oscillator and envelope, the filter and
-		// decimator history cleared. Used when a reused slot is handed to a
-		// new instance, so no oscillator phase, envelope level, filter
-		// integrator, decimator history, or stale `active` flag from the
-		// previous occupant can survive into the new sound.
-		// `Synth::start` then re-establishes the base parameters and gates the
-		// instance's own voices on through `applyBaseBlock`.
+		// Resets for slot reuse.
 		void resetState() noexcept
 		{
 			filter_.reset();
@@ -436,8 +413,6 @@ namespace glirps::impl
 		}
 
 	private:
-		// Test-only access to the smoothed ramp state: the accessor lives in the
-		// test target, this declaration is the only production footprint.
 		friend struct ChipInstanceTestAccess;
 
 		// Steps `current` toward `target` by `increment` and clamps it at the
@@ -475,16 +450,15 @@ namespace glirps::impl
 		std::uint32_t sample_rate_hz_;
 		std::uint32_t voice_count_;
 		std::uint32_t oversampling_factor_;
-		// Linear factor realising `nominal_source_level_db` at the chip output:
+		// Linear factor realizing `nominal_source_level_db` at the chip output:
 		// a full-amplitude render at unity gains peaks at that level, the
 		// reference every authored gain value is relative to. Computed from the
 		// constant at construction.
 		float nominal_level_linear_;
 		StateVariableFilter filter_;
 		Decimator decimator_;
-		// Cutoff and resonance are ramped over one sub-block to avoid zipper
-		// noise: `advance` steps `*_current` toward
-		// `*_target` by `*_increment` once per output sample.
+		// `advance` steps `*_current` toward `*_target` by `*_increment` once
+		// per output sample.
 		float cutoff_target_ = default_filter_cutoff_hz;
 		float cutoff_current_ = default_filter_cutoff_hz;
 		float cutoff_increment_ = 0.0f;

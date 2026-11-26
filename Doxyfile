@@ -3,7 +3,7 @@
 # output folder through the GLIRPS_DOCS_OUTPUT environment variable.
 
 PROJECT_NAME           = "GLIRPS"
-PROJECT_BRIEF          = "Gritty Little Instrument for Retro Procedural Sounds: a synthesizer for chiptune-style sound effects. Build retro sounds in the spirit of the SID chip from waveforms, envelopes, and filters, with optional bit-crushed chip quantization, and render them to audio in real time"
+PROJECT_BRIEF          = "Gritty Little Instrument for Retro Procedural Sounds"
 OUTPUT_DIRECTORY       = $(GLIRPS_DOCS_OUTPUT)
 
 INPUT                  = include docs

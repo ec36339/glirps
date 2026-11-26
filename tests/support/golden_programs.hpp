@@ -92,7 +92,7 @@ namespace glirps::test_support
 		GoldenCase{.name = "pitch_offset_catmull_rom",
 			.feature = Feature::pitch_offset_catmull_rom,
 			.expected_hash = 0x7f222408240a124eULL},
-		// As `pitch_offset_linear`, with a control tick four times as often.
+		// As `pitch_offset_linear`, with an effective tick four times as often.
 		GoldenCase{.name = "tick_multiplier",
 			.feature = Feature::pitch_offset_linear,
 			.tick_multiplier = 4,

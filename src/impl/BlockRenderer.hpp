@@ -31,6 +31,7 @@ namespace glirps::impl
 	// through it directly.
 	// `Synth::render` drives one per live instance
 	// and submits each result to the installed `Mixer`.
+	// `glirps_render.hpp` exposes these methods as free functions.
 	class BlockRenderer
 	{
 	public:
@@ -52,22 +53,15 @@ namespace glirps::impl
 		// `oversampling_factor`.
 		void reconfigure(std::uint32_t sample_rate_hz, std::uint32_t oversampling_factor) noexcept;
 
-		// Returns the renderer to a cleared state: every voice
-		// inactive, oscillator and envelope zeroed, filter and decimator
-		// history cleared. Called by `Synth::start` when a reused slot is
-		// handed to a new instance, so no DSP state from the previous
-		// occupant survives into the new sound.
+		// Resets for slot reuse.
 		void resetState() noexcept;
 
 		// Reseeds one voice's noise register from `seed`, leaving every other
-		// voice field untouched. Used by `Synth::start` to seed every voice
-		// of a reused slot's renderer from the instance's own
-		// `instance_seed`, so a given seed always reproduces the same sound.
+		// voice field untouched.
 		void seedVoiceNoise(std::uint32_t voice_index, std::uint32_t seed) noexcept;
 
 		// Configures one voice directly: waveform, frequency, pulse width, gain,
-		// and noise seed. Direct entry point, also available as a free
-		// function in `glirps_render.hpp`; `applyBlock` is the data-driven path.
+		// and noise seed.
 		void configureVoice(std::uint32_t voice_index,
 			Waveform waveform,
 			float frequency_hz,
@@ -75,8 +69,7 @@ namespace glirps::impl
 			float gain,
 			std::uint64_t seed) noexcept;
 
-		// Selects one voice's envelope rate indices and sustain level. Direct
-		// entry point, also available as a free function in `glirps_render.hpp`.
+		// Selects one voice's envelope rate indices and sustain level.
 		void setVoiceEnvelope(std::uint32_t voice_index,
 			std::uint32_t attack_index,
 			std::uint32_t decay_index,
@@ -91,64 +84,51 @@ namespace glirps::impl
 			float release_seconds,
 			float sustain_level) noexcept;
 
-		// Gates one voice's envelope. Direct entry point, also
-		// available as a free function in `glirps_render.hpp`.
+		// Gates one voice's envelope.
 		void setGate(std::uint32_t voice_index, bool gate_on) noexcept;
 
-		// Sets one voice's oscillator frequency (used for sweeps). Also
-		// available as a free function in `glirps_render.hpp`.
+		// Sets one voice's oscillator frequency (used for sweeps).
 		void setVoiceFrequency(std::uint32_t voice_index, float frequency_hz) noexcept;
 
 		// Enables ring modulation on one voice from another voice's oscillator.
-		// Called by `Synth::start` to install the program's routing; also
-		// available as a free function in `glirps_render.hpp`.
 		void setRingModSource(std::uint32_t voice_index, std::uint32_t source_index) noexcept;
 
 		// Enables hard sync on one voice from another voice's oscillator
-		// overflow. Called by `Synth::start` to install the program's routing;
-		// also available as a free function in `glirps_render.hpp`.
+		// overflow.
 		void setHardSyncSource(std::uint32_t voice_index, std::uint32_t source_index) noexcept;
 
-		// Configures the shared filter. Direct entry point, also
-		// available as a free function in `glirps_render.hpp`.
+		// Configures the shared filter.
 		void setFilter(float cutoff_hz, float resonance_q, FilterMode mode, float saturation) noexcept;
 
-		// Updates only the shared filter cutoff (used for sweeps). Also
-		// available as a free function in `glirps_render.hpp`.
+		// Updates only the shared filter cutoff (used for sweeps).
 		void setFilterCutoff(float cutoff_hz) noexcept;
 
-		// Sets the shared output gain. Direct entry point, also
-		// available as a free function in `glirps_render.hpp`.
+		// Sets the shared output gain.
 		void setOutputGain(float gain) noexcept;
 
 		// The decimator's group delay in output frames, so a measurement can
 		// align renders at different oversampling factors.
 		[[nodiscard]] std::uint32_t getDecimatorGroupDelayInFrames() const noexcept;
 
-		// Installs `block`'s parameters on the instance: waveform, frequency,
-		// pulse width, filter modes, and gate step immediately, because only
-		// cutoff, resonance, and gain are smoothed, and smoothing pitch would
-		// destroy the stepped arpeggio character; cutoff, resonance, per-voice
-		// gain, and output gain ramp to their new values over one sub-block
-		// to avoid zipper noise.
+		// Installs `block`'s parameters on the instance. Cutoff, resonance and
+		// gains ramp over one sub-block to avoid zipper noise; everything else
+		// changes immediately.
 		void applyBlock(const ParameterBlock& block) noexcept;
 
 		// Snaps every field of `block` directly with no ramp, establishing the
-		// instance's base state, so the first render does not ramp in from
-		// whatever a reused slot's renderer last held.
+		// instance's base state.
 		void applyBaseBlock(const ParameterBlock& block) noexcept;
 
 		// Sets the shared filter's saturation. Fixed for the instance's whole
-		// life: `ParameterBlock` carries no per-tick saturation field, so
-		// `Synth::start` sets it once from the program rather than per block.
+		// life: `ParameterBlock` carries no per-tick saturation field.
 		void setFilterSaturation(float saturation) noexcept;
 
-		// Renders `output.size()` frames of mono, which SHALL be a whole number
+		// Renders `output.size()` frames of mono, which must be a whole number
 		// of sub-blocks. Allocates nothing, takes no lock, issues no syscall.
 		void render(std::span<float> output) noexcept;
 
 		// Advances one sample and returns it, for a caller that sweeps a
-		// parameter every sample. Also available as a free function in `glirps_render.hpp`.
+		// parameter every sample.
 		float renderOne() noexcept;
 
 		// Returns true once every active voice's envelope has finished.

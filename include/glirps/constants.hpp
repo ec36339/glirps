@@ -7,21 +7,19 @@
 
 namespace glirps
 {
-	/// Nominal full scale of the float sample path. The path MAY exceed this
+	/// Nominal full scale of the float sample path. The path may exceed this
 	/// internally; only the consumer's output stage constrains the range.
 	inline constexpr float full_scale = 1.0f;
 
-	/// Peak level of one chip instance rendering at full waveform amplitude with
-	/// every authored gain at unity. Authored gains are linear multipliers relative
-	/// to this value.
+	/// Nominal peak level of one unfiltered voice at full waveform amplitude with
+	/// every gain at 1.0. Gains are linear multipliers relative to this level.
 	inline constexpr float nominal_source_level_db = -12.0f;
 
 	/// Decibel amplitude scale factor: level_dbfs = decibel_amplitude_scale *
 	/// log10(linear).
 	inline constexpr float decibel_amplitude_scale = 20.0f;
 
-	/// Base rate of the control grid. A sound's effective tick rate is an
-	/// integer multiple of this.
+	/// Base ticks per second.
 	inline constexpr std::uint32_t control_grid_base_rate_hz = 50;
 
 	/// Subticks per base tick. The subtick is the unit of every time
@@ -33,8 +31,7 @@ namespace glirps
 	/// sub-block.
 	inline constexpr std::uint32_t sub_block_frame_count = 64;
 
-	/// Default oversampling factor. The single source of truth for every default
-	/// oversampling factor in GLIRPS, public and internal alike.
+	/// Default oversampling factor.
 	inline constexpr std::uint32_t default_oversampling_factor = 16U;
 
 	/// Upper bound on the voices one chip instance may hold.

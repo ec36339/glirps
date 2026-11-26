@@ -10,15 +10,12 @@
 #include <cstdint>
 
 // Headless integration tests for the synth lifecycle free functions in
-// `glirps/glirps.hpp` (create, configure, start, completion, release). GLIRPS
-// is CPU-only synthesis producing a sample buffer, so no GPU or audio device
-// is used.
+// `glirps/glirps.hpp` (create, configure, start, completion, release).
 namespace
 {
 	// A one-voice program with an instant attack and fast release.
 	// `release_tick` makes it a one-shot: the chip-wide gate releases itself
 	// at that base tick.
-	// `storage` SHALL outlive every use of the returned `SoundProgram`.
 	glirps::SoundProgram makeOneShotProgram(glirps::test_support::TestProgramStorage& storage,
 		std::uint32_t release_tick)
 	{

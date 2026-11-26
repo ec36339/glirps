@@ -9,8 +9,7 @@
 #include <vector>
 
 // Headless integration tests for the shared filter in
-// `glirps/glirps_render.hpp`. GLIRPS is CPU-only synthesis producing a sample buffer,
-// so no GPU or audio device is used.
+// `glirps/glirps_render.hpp`.
 using glirps::test_support::peakOf;
 using glirps::test_support::test_oversampling_factor;
 using glirps::test_support::test_sample_rate_hz;

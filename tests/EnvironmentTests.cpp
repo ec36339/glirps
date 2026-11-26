@@ -41,7 +41,7 @@ namespace
 		return createSynthWithPoolsEnvironment(test_chip_instances_environment, test_voices_environment, environment);
 	}
 
-	// A one-voice sustained program. `storage` SHALL outlive every use of the returned program.
+	// A one-voice sustained program.
 	glirps::SoundProgram makeProgramEnvironment(glirps::test_support::TestProgramStorage& storage)
 	{
 		storage.program.base_pitch = glirps::Pitch{.semitone = 36, .cents = 0};

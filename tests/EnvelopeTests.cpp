@@ -126,7 +126,7 @@ TEST(EnvelopeTests, IsComplete_NeverGatedOn_ReportsComplete)
 }
 
 // A repeated gate-on does not restart the attack: re-applying a gate-on block
-// to an already sounding voice SHALL NOT retrigger its envelope.
+// to an already sounding voice must not retrigger its envelope.
 TEST(EnvelopeTests, SetGate_RepeatedGateOn_DoesNotRestartTheAttack)
 {
 	// ARRANGE

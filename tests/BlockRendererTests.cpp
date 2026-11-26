@@ -10,7 +10,7 @@ TEST(BlockRendererTests, Render_RingModSourceSet_MatchesDirectChipInstanceRingMo
 {
 	// An inactive voice's noise seed never reaches the output (only active
 	// voices are summed), so the direct `ChipInstance`'s own construction
-	// seed need not match `BlockRenderer`'s internal default -- only the two
+	// seed need not match `BlockRenderer`'s internal default; only the two
 	// configured voices' own `setVoice`/`configureVoice` seeds need to agree,
 	// which they do below (ring-mod/hard-sync routing).
 	// ARRANGE
@@ -39,8 +39,8 @@ TEST(BlockRendererTests, Render_RingModSourceSet_MatchesDirectChipInstanceRingMo
 
 TEST(BlockRendererTests, Render_HardSyncSourceSet_MatchesDirectChipInstanceHardSync)
 {
-	// See the ring-mod test above for why the direct `ChipInstance`'s own
-	// construction seed need not match `BlockRenderer`'s internal default.
+	// The direct `ChipInstance`'s construction seed need not match: only active
+	// voices are summed, and both get explicit voice seeds.
 	// ARRANGE
 	constexpr std::uint32_t sample_rate_hz = 48000;
 	constexpr std::uint32_t frame_count = 128;

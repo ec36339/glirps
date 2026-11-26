@@ -7,9 +7,9 @@
 #include <array>
 #include <cstdint>
 
-// `ControlGrid` places a control tick at an absolute sample position computed
+// `ControlGrid` places an effective tick at an absolute sample position computed
 // with the integer division last, so the placement error is bounded below one
-// sample and never accumulates. The tests below pin that property at rates
+// sample and never accumulates. The tests below check that property at rates
 // where `control_grid_base_rate_hz * tick_multiplier` does not divide the
 // sample rate.
 

@@ -13,15 +13,13 @@
 
 namespace glirps
 {
-	// Legal ranges of `ParameterBlock` fields. `gain_authored_ceiling` is the
-	// nominal full scale authored gains are relative to; `gain_ceiling` is the
-	// wider runtime limit.
+	// Legal ranges of `ParameterBlock` fields.
 
 	/// Lowest legal oscillator frequency.
 	inline constexpr float frequency_hz_floor = 0.0f;
 	/// Lowest legal gain.
 	inline constexpr float gain_floor = 0.0f;
-	/// Nominal full-scale reference that authored gains are relative to.
+	/// Upper end of the authored gain range (unity gain).
 	inline constexpr float gain_authored_ceiling = 1.0f;
 	/// Highest gain a runtime clamp lets through.
 	inline constexpr float gain_ceiling = 1000.0f;
@@ -44,7 +42,7 @@ namespace glirps
 		/// Duty cycle of a pulse waveform, in `[pulse_width_floor, pulse_width_ceiling]`. Read only under
 		/// `Waveform::pulse`, but always carries a value in range.
 		float pulse_width = 0.5f;
-		/// Voice gain, in `[0, gain_ceiling]`; authored values are relative to
+		/// Voice gain, in `[0, gain_ceiling]`; authored values do not exceed
 		/// `gain_authored_ceiling`.
 		float gain = 1.0f;
 		/// Whether this voice's envelope is gated on for this tick.
@@ -52,9 +50,9 @@ namespace glirps
 	};
 
 	/// The evaluated and quantized parameters of one chip instance at one
-	/// effective tick. Produced by `synthEvaluateTick`, consumed by `synthApplyBlock`, `blockRendererApplyBlock`, and
-	/// `blockRendererApplyBaseBlock`. Trivially copyable, so a consumer may carry it
-	/// across a thread boundary by value with no allocation.
+	/// effective tick. Produced by @ref synthEvaluateTick, consumed by @ref synthApplyBlock,
+	/// @ref blockRendererApplyBlock, and @ref blockRendererApplyBaseBlock. Trivially copyable, so a consumer may
+	/// carry it across a thread boundary by value with no allocation.
 	struct ParameterBlock
 	{
 		/// The chip instance this block targets.
@@ -62,13 +60,13 @@ namespace glirps
 		/// Shared filter responses for this tick, summed. All four false passes
 		/// the input through unfiltered.
 		FilterModeSet filter_modes;
-		/// Shared filter cutoff in hertz. `synthEvaluateTick` clamps it to 1 Hz up to
+		/// Shared filter cutoff in hertz. @ref synthEvaluateTick clamps it to 1 Hz up to
 		/// just under half the sample rate.
 		float cutoff_hz = 20000.0f;
 		/// Shared filter resonance, in `[resonance_q_floor, resonance_q_ceiling]`.
 		float resonance_q = 0.707f;
-		/// Chip-wide output gain, in `[0, gain_ceiling]`; authored values are
-		/// relative to `gain_authored_ceiling`.
+		/// Chip-wide output gain, in `[0, gain_ceiling]`; authored values do not
+		/// exceed `gain_authored_ceiling`.
 		float output_gain = 1.0f;
 		/// Entries in `[0, voice_count)` of `voices` are meaningful.
 		std::uint32_t voice_count = 0;
@@ -76,15 +74,14 @@ namespace glirps
 		shims::Array<VoiceParameters, max_voices_per_instance> voices;
 	};
 
-	/// Sub-block boundary positions bracketing one emitted block's effective
-	/// tick, in absolute `sub_block_frame_count` units counted from tick 0.
-	/// Produced by `synthEvaluateTick` so an offline caller deriving a
-	/// render span need not compute the tick-to-sample mapping itself.
+	/// The time span of one block, as indices of sub-blocks
+	/// (`sub_block_frame_count` frames each) counted from the instance's first
+	/// block. Reported by @ref synthEvaluateTick.
 	struct TickSubBlockSpan
 	{
 		/// Sub-block containing this tick's own start.
 		std::uint64_t start = 0;
-		/// Sub-block containing the next tick's start -- this tick's natural
+		/// Sub-block containing the next tick's start, which is this tick's natural
 		/// end.
 		std::uint64_t next_start = 0;
 	};

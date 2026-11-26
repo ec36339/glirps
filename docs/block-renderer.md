@@ -1,6 +1,6 @@
 # The Block Renderer
 
-A *block renderer* renders one [chip instance](chip-instance.md)'s worth of voices and nothing else. It has no [sound program](sound-program.md), no tables, no instance pool, and no [mixer](mixer.md). The [consumer](glossary.md#consumer) drives it directly and receives mono samples. Use it when you already know what every voice should do at every moment, for example to audition a waveform, to render from your own control logic, or to measure the signal path.
+A *block renderer* renders one [chip instance](chip-instance.md)'s worth of voices and nothing else. The [consumer](glossary.md#consumer) drives it directly and receives mono samples. Use it when you already know what every voice should do at every moment, for example to audition a waveform, to render from your own control logic, or to measure the signal path.
 
 To play whole sounds from sound programs, use the synth instead. Both are described in [the overview](INDEX.md#synth-and-block-renderer).
 
@@ -8,7 +8,9 @@ The functions are declared in `glirps_render.hpp`. The optional `glirps_handles.
 
 ## Creating one
 
-`blockRendererCreate` takes the output sample rate, the oversampling factor, and an optional [environment](INDEX.md#environment-allocation-and-logging). It returns the handle, or a falsy result if allocation failed. `blockRendererReconfigure` changes the sample rate or the oversampling factor later, and `blockRendererDestroy` frees the renderer.
+`blockRendererCreate` takes the output sample rate, the oversampling factor, and an optional [environment](INDEX.md#environment-allocation-and-logging). It returns the handle, or a falsy result if allocation failed. `blockRendererDestroy` frees the renderer.
+
+`blockRendererReconfigure` changes the sample rate or the oversampling factor later. It discards every voice's frequency, pulse width, envelope settings, and gate, and clears filter and decimator history. Set the envelope, frequency, and pulse width again, then turn the gate on.
 
 Creating, reconfiguring, and destroying can allocate, so a real-time consumer calls them while the audio thread is not rendering.
 
@@ -43,7 +45,7 @@ Frequencies are in hertz. [`frequencyHertz`](../include/glirps/frequency.hpp) co
 
 **Parameter blocks** set everything a block carries at once:
 
-- `blockRendererApplyBlock` installs a block the way the synth does: waveform, frequency, pulse width, filter modes, and gate step immediately, while cutoff, resonance, voice gain, and output gain [ramp over one sub-block](parameter-blocks.md#applying-a-block).
+- `blockRendererApplyBlock` installs a block the way the synth does. See [applying a block](parameter-blocks.md#applying-a-block).
 - `blockRendererApplyBaseBlock` snaps every field with no ramp. Use it to establish a starting state, so that the first samples are not a fade from the previous values.
 
 The block's `target` field names a synth instance and is not used here. A block carries no envelope times and no filter saturation, and applying one never changes them. The envelope setters and `blockRendererSetFilterSaturation` set those.
@@ -69,17 +71,13 @@ An index of 16 or more is ignored, and the envelope keeps its previous settings.
 
 `blockRendererRender` fills a mono buffer. Its size must be a whole number of [sub-blocks](glossary.md#sub-block), that is a multiple of `sub_block_frame_count`. It allocates nothing, takes no lock, and makes no system call. `blockRendererRenderOne` advances a single sample and returns it, for a caller that changes a parameter every sample.
 
-`blockRendererIsComplete` is true once every voice has finished. A voice that has never been gated counts as finished, so a freshly created renderer reports complete until a voice is gated on. `blockRendererResetState` returns the renderer to a cleared state: every voice inactive, oscillator and envelope zeroed, filter and decimator history cleared. `blockRendererGetDecimatorGroupDelayInFrames` reports the decimator's group delay in output frames, so that renders at different oversampling factors can be aligned for measurement.
+`blockRendererIsComplete` is true once every voice has finished. Only configured voices count, so a new renderer reports complete. On a new renderer every gate is already on, so configuring a voice starts its attack. After a reset or reconfiguration, gate it on with `blockRendererSetGate`. `blockRendererResetState` deactivates every voice, turns every gate off, and clears routing and signal history. The filter responses and saturation are kept. Set up voices, envelopes, cutoff, resonance, and output gain again before reuse. `blockRendererGetDecimatorGroupDelayInFrames` reports the decimator's group delay in output frames, so that renders at different oversampling factors can be aligned for measurement.
 
 The output follows the same level convention as the synth: with every gain at 1.0, a voice at full waveform amplitude peaks at the [nominal source level](glossary.md#nominal-source-level). Nothing limits the result.
 
 ## Threading and real-time use
 
-A block renderer has no lock of its own and belongs to one thread at a time. Two calls on the same handle must not overlap, and handing a handle to another thread needs a happens-before relation that the consumer provides. Different handles are independent.
-
-A consumer that renders on an audio thread calls every function on the handle from that thread. The exceptions are setup before the thread starts using the handle, such as `blockRendererCreate` and `blockRendererConfigureVoice`, and `blockRendererDestroy` after it has stopped. To change parameters from another thread, pass values to the audio thread, for example as `ParameterBlock` values for `blockRendererApplyBlock`, instead of calling the setters from there.
-
-Unlike `synthRender`, `blockRendererRender` does not set flush-to-zero or denormals-are-zero. A consumer that wants either sets it on the render thread.
+A block renderer belongs to one thread at a time. See the [block renderer API reference](https://ec36339.github.io/glirps/group__block_renderer.html) for the threading and real-time rules.
 
 ## Renderer determinism
 

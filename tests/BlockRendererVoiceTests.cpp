@@ -8,8 +8,7 @@
 #include <vector>
 
 // Headless integration tests for voice configuration and rendering in
-// `glirps/glirps_render.hpp`. GLIRPS is CPU-only synthesis producing a sample buffer,
-// so no GPU or audio device is used.
+// `glirps/glirps_render.hpp`.
 using glirps::test_support::peakOf;
 using glirps::test_support::test_frequency_hz;
 using glirps::test_support::test_oversampling_factor;

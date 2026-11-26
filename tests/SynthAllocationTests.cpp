@@ -14,7 +14,6 @@ namespace
 	constexpr std::uint32_t test_sample_rate_hz_synth_allocation = 48000;
 	constexpr std::uint32_t test_oversampling_factor_synth_allocation = 16;
 
-	// `storage` SHALL outlive every use of the returned `SoundProgram`.
 	glirps::SoundProgram makeMinimalProgramSynthAllocation(glirps::test_support::TestProgramStorage& storage)
 	{
 		storage.program.base_pitch = glirps::Pitch{.semitone = 36, .cents = 0};

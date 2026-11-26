@@ -173,10 +173,7 @@ namespace glirps::impl
 				phase_ = Phase::release;
 		}
 
-		// Returns the envelope to its construction state: gated off, level
-		// zero, idle. Used when a chip slot is handed to a new instance,
-		// so a re-triggered slot starts from silence rather than from whatever
-		// the previous occupant's last phase and level were.
+		// Resets for slot reuse.
 		void reset() noexcept
 		{
 			gate_on_ = false;
@@ -233,18 +230,9 @@ namespace glirps::impl
 			return level_;
 		}
 
-		// Returns true once release has decayed to silence, and for an
-		// envelope still idle: it is silent, and it can no longer reach
-		// release on its own, because `setGate` is edge-triggered and a gate
-		// that never opened has no falling edge to take. A voice held
-		// inactive past its instance's release time ends in exactly that
-		// state -- by `start_subtick` or by an instance onset delay that
-		// quantizes onset to the control grid -- and without this its chip
-		// instance would never report complete and its pool slot would never
-		// be reclaimed.
-		// Reporting complete before the voice has sounded is prevented one
-		// level up, by `Synth::render` requiring the chip-wide gate to have
-		// closed before it latches `completed_generation`.
+		// True when idle or when release has reached silence. Idle counts
+		// because a voice never gated on gets no falling edge to start
+		// release, so its instance would otherwise never complete.
 		[[nodiscard]] bool isComplete() const noexcept
 		{
 			if (phase_ == Phase::idle)

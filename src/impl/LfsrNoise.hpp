@@ -29,8 +29,6 @@ namespace glirps::impl
 		}
 
 		// Shifts the register one step and returns the new register value.
-		// The return exposes the state sequence without a separate accessor;
-		// the render path discards it.
 		std::uint32_t shift() noexcept
 		{
 			const std::uint32_t feedback = ((register_ >> 22) ^ (register_ >> 17)) & 1u;

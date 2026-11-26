@@ -10,11 +10,6 @@ namespace glirps::test_support
 	// needs this). The overloads run for the whole process once linked;
 	// this type only reports the delta across its own lifetime, so multiple
 	// instances (nested or sequential) are safe.
-	//
-	// Before using this, consider whether the component under test could take
-	// a custom allocator interface instead: a scoped allocator is precise and
-	// supports exact-count assertions. This process-wide override is
-	// acceptable at least for "allocates nothing" assertions.
 	class ScopedAllocationCounter
 	{
 	public:

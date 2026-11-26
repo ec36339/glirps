@@ -15,10 +15,7 @@ namespace
 {
 	constexpr std::uint32_t test_sample_rate_hz_external_control_one_shot = 48000;
 
-	// A one-voice, one-shot program (a `gate.release_subtick` set), unity gain and an authored
-	// cutoff and output gain isolated from envelope shape, so only the external control law of
-	// `updateControlParams` is under test. `storage` SHALL outlive every use of the returned
-	// `SoundProgram`.
+	// A one-voice, one-shot triangle program with full sustain.
 	glirps::SoundProgram oneShotTriangleProgram(glirps::test_support::TestProgramStorage& storage)
 	{
 		storage.program.base_pitch = glirps::Pitch{.semitone = 36, .cents = 0};
@@ -38,7 +35,7 @@ namespace
 	}
 }
 
-// `updateControlParams` applies to every live instance, one-shot included -- a
+// `updateControlParams` applies to every live instance, one-shot included: a
 // release tick governs when the gate releases and says nothing about whether
 // the instance's pitch, cutoff, or gain may be driven from outside. A consumer
 // driving pitch per tick needs this reach on one-shot instances too.
@@ -47,8 +44,6 @@ TEST(SynthExternalControlOneShotTests, UpdateControlParams_OneShotInstance_Takes
 	// ARRANGE
 	glirps::impl::Synth synth(1, 4);
 	synth.configure(test_sample_rate_hz_external_control_one_shot);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts the control law, not quantization.
 	synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage storage;
 	auto program = oneShotTriangleProgram(storage);

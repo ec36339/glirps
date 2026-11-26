@@ -26,7 +26,7 @@ namespace glirps::shims
 		/// Creates an empty view with a null `data()`.
 		constexpr Span() noexcept = default;
 
-		/// Creates a view of `size` values starting at `data`. `data` SHALL
+		/// Creates a view of `size` values starting at `data`. `data` must
 		/// point to at least `size` values, or be null when `size` is zero.
 		/// @param data Pointer to the first value.
 		/// @param size Number of values in the view.
@@ -55,23 +55,19 @@ namespace glirps::shims
 		{
 		}
 
-		/// Returns a `std::span` over the same values.
 		/// @return A `std::span` over the same values.
 		constexpr explicit operator std::span<T>() const noexcept { return std::span<T>(data_, size_); }
 
-		/// Returns a pointer to the first value, or null for a default-constructed view.
-		/// @return Pointer to the first value.
+		/// @return Pointer to the first value, or null for a default-constructed view.
 		[[nodiscard]] constexpr T* data() const noexcept { return data_; }
 
-		/// Returns the number of values in the view.
-		/// @return The number of values.
+		/// @return The number of values in the view.
 		[[nodiscard]] constexpr std::size_t size() const noexcept { return size_; }
 
-		/// Returns whether the view holds no values.
 		/// @return True when the view holds no values.
 		[[nodiscard]] constexpr bool empty() const noexcept { return size_ == 0; }
 
-		/// Returns the value at `index`. `index` SHALL be less than `size()`;
+		/// Returns the value at `index`. `index` must be less than `size()`;
 		/// debug builds assert it.
 		/// @param index Position of the value.
 		/// @return Reference to the value at `index`.
@@ -94,7 +90,7 @@ namespace glirps::shims
 			return data_[index];
 		}
 
-		/// Returns the first value. The view SHALL NOT be empty; debug builds
+		/// Returns the first value. The view must not be empty; debug builds
 		/// assert it.
 		/// @return Reference to the first value.
 		[[nodiscard]] constexpr T& front() const noexcept
@@ -103,7 +99,7 @@ namespace glirps::shims
 			return data_[0];
 		}
 
-		/// Returns the last value. The view SHALL NOT be empty; debug builds
+		/// Returns the last value. The view must not be empty; debug builds
 		/// assert it.
 		/// @return Reference to the last value.
 		[[nodiscard]] constexpr T& back() const noexcept
@@ -112,11 +108,9 @@ namespace glirps::shims
 			return data_[size_ - 1];
 		}
 
-		/// Returns a pointer to the first value.
 		/// @return Pointer to the first value.
 		[[nodiscard]] constexpr T* begin() const noexcept { return data_; }
 
-		/// Returns a pointer one past the last value.
 		/// @return Pointer one past the last value.
 		[[nodiscard]] constexpr T* end() const noexcept { return data_ + size_; }
 

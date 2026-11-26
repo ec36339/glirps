@@ -9,8 +9,8 @@ namespace glirps
 {
 	/// A chip instance's pool slot, distinct from a bare integer so it cannot
 	/// be confused with an unrelated count or index at a module boundary.
-	/// `ChipInstanceHandle::getSlot()` is its only source; a consumer extracts the
-	/// raw value with `.get()` to index its own per-slot table.
+	/// A consumer gets one from `ChipInstanceHandle::getSlot()` and reads the raw
+	/// value with `.get()` to index its own per-slot table.
 	class ChipSlotIndex
 	{
 	public:
@@ -23,7 +23,6 @@ namespace glirps
 		{
 		}
 
-		/// Returns the raw slot number.
 		/// @return The raw slot number.
 		[[nodiscard]] constexpr std::uint32_t get() const noexcept { return value_; }
 
@@ -44,7 +43,6 @@ namespace glirps
 		/// Compares two handles by value; equal only when slot and generation match.
 		[[nodiscard]] friend bool operator==(ChipInstanceHandle, ChipInstanceHandle) noexcept = default;
 
-		/// Returns true for a handle that never named an instance.
 		/// @return True when the handle never named an instance.
 		[[nodiscard]] bool isNull() const noexcept { return generation_ == 0; }
 

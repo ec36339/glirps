@@ -1,9 +1,7 @@
 #pragma once
 
 /// @file
-/// Isolates the one owning-resource type of glirps_render.hpp so a consumer
-/// that only needs to name `BlockRendererHandle` does not have to include
-/// the rest of the BlockRenderer API.
+/// Declares `BlockRendererHandle` without the rest of the block renderer API.
 
 namespace glirps
 {

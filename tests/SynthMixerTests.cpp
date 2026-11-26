@@ -12,9 +12,7 @@
 #include <vector>
 
 // Headless integration tests for `synthSetMixer` and `synthGetChannelCount` in
-// `glirps/glirps.hpp`. GLIRPS is CPU-only synthesis producing a sample buffer,
-// so no GPU or audio device is used. The mixer is captured through a plain
-// context struct rather than gmock.
+// `glirps/glirps.hpp`.
 using glirps::test_support::makeSustainedProgram;
 using glirps::test_support::peakOf;
 using glirps::test_support::test_oversampling_factor;
@@ -23,7 +21,7 @@ using glirps::test_support::test_sample_rate_hz;
 namespace
 {
 	// Plain context the mixer callbacks write through, so the test can observe
-	// the out-call seam without gmock.
+	// the mixer callbacks without gmock.
 	struct MixerContext
 	{
 		std::uint32_t channel_count = 2;
@@ -94,7 +92,7 @@ TEST(SynthMixerTests, SetMixer_Callbacks_FireHonorChannelCountAndDefaultRestores
 	std::vector<float> output(ctx.channel_count * glirps::sub_block_frame_count, 0.0f);
 	glirps::synthRender(synth, glirps::shims::toSpan(output));
 
-	// ASSERT: the seam fired, the channel count was queried, and the instance
+	// ASSERT: the mixer callbacks ran, the channel count was queried, and the instance
 	// produced non-silent audio.
 	EXPECT_GT(ctx.begin_calls, 0);
 	EXPECT_GT(ctx.submit_calls, 0);

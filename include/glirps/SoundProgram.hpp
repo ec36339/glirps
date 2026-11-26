@@ -25,8 +25,7 @@ namespace glirps
 		std::int32_t cents = 0;
 	};
 
-	/// Envelope parameters in seconds. Converted to per-sample rates at
-	/// `synthStart`, from the sample rate `synthConfigure` fixed.
+	/// Envelope parameters in seconds.
 	struct EnvelopeSpec
 	{
 		/// Linear rise from gate on to full level. The time to reach 99% of it.
@@ -41,8 +40,8 @@ namespace glirps
 		float release_seconds = 0.006f;
 	};
 
-	/// Per-voice tables. A presence bool false leaves its parameter at its
-	/// base value for the whole sound.
+	/// Per-voice tables. If a `has_` flag is false, its table is ignored and the
+	/// parameter keeps its base value.
 	struct VoiceTables
 	{
 		/// Whether `waveform` is active.
@@ -77,7 +76,8 @@ namespace glirps
 		/// Whether `gate` is active.
 		bool has_gate = false;
 		/// Per-voice retrigger gate, ANDed with the gate that `synthSetGate` or
-		/// `release_subtick` establishes. `has_gate` false is always-true.
+		/// `release_subtick` establishes. If `has_gate` is false, the table never
+		/// closes the gate.
 		Table<bool> gate;
 		/// Narrows `pitch_slide`'s runtime clamp.
 		AccumulateBounds pitch_slide_bounds;
@@ -118,8 +118,7 @@ namespace glirps
 		std::uint32_t hard_sync_source = 0;
 	};
 
-	/// Per-chip filter tables. A presence bool false behaves as in
-	/// `VoiceTables`.
+	/// Per-chip filter tables. `has_` flags work as in `VoiceTables`.
 	struct FilterTables
 	{
 		/// Whether `cutoff` is active.
@@ -149,8 +148,8 @@ namespace glirps
 		FilterTables tables;
 	};
 
-	/// Gate behaviour. A one-shot sound sets `release_subtick`; a sustained
-	/// sound leaves `has_release_subtick` false and is gated by the consumer
+	/// Gate behavior. A one-shot sound sets `has_release_subtick` and
+	/// `release_subtick`; a sustained sound leaves `has_release_subtick` false and is gated by the consumer
 	/// through `synthSetGate`.
 	struct GateProgram
 	{
@@ -158,8 +157,7 @@ namespace glirps
 		bool has_release_subtick = false;
 		/// Instance time, in subticks, at which a one-shot sound releases its
 		/// gate: the gate is on for every block whose time is below it.
-		/// Meaningful only when `has_release_subtick` is true. False is a
-		/// sustained sound, which the consumer gates instead.
+		/// Meaningful only when `has_release_subtick` is true.
 		std::uint32_t release_subtick = 0;
 	};
 
@@ -173,8 +171,8 @@ namespace glirps
 		GritProfile grit;
 		/// Pitch every voice starts from, before tables and variation.
 		Pitch base_pitch;
-		/// Semitone degrees seeded pitch variation snaps to. `scale_count`
-		/// zero means no variation is applied. Non-owning; sized
+		/// Semitone degrees seeded pitch variation snaps to. If `scale_count` is
+		/// zero, the seed does not vary the pitch. Non-owning; sized
 		/// `scale_count`.
 		const std::int32_t* scale = nullptr;
 		/// Number of entries `scale` points to.

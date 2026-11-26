@@ -40,9 +40,7 @@ namespace
 	constexpr std::uint32_t test_sample_rate_hz_synth = 48000;
 
 	// Renders `program` through a fresh 8-by-32 `Synth` and returns whether it
-	// started. Returns a bool rather than the `StartError` cast to an integer:
-	// `StartError::chip_instances_exhausted` is enumerator 0, so returning the
-	// error cast would collide with the success value and mask that failure.
+	// started.
 	bool renderThroughSynth(const glirps::SoundProgram& program, std::uint32_t frame_count, std::vector<float>& output)
 	{
 		glirps::impl::Synth synth(8, 32);
@@ -64,7 +62,7 @@ namespace
 	}
 
 	// A gmock `Mixer` whose interactions the tests drive through
-	// `ON_CALL`/`EXPECT_CALL`. The recording behaviour the test needs is installed
+	// `ON_CALL`/`EXPECT_CALL`. The recording behavior the test needs is installed
 	// per test via `Invoke`; the class carries the observed state so the test can
 	// assert it.
 	class MockMixer : public glirps::impl::Mixer
@@ -93,7 +91,6 @@ namespace
 
 // `nominal_source_level_db` survives a full-amplitude triangle at unity
 // gains: it is the nominal source level every authored gain is relative to.
-// Built directly so this test exercises `Synth` alone.
 TEST(SynthTests, Render_UnityGains_PeaksAtNominalSourceLevel)
 {
 	// ARRANGE
@@ -123,8 +120,6 @@ TEST(SynthTests, Render_UnityGains_PeaksAtNominalSourceLevel)
 // `Synth::render` fills the caller's span with float samples and does not
 // constrain them to `full_scale`: a program whose output gain exceeds unity
 // renders a peak that exceeds full scale, since `glirps` applies no limiting.
-// Built directly so this test exercises `Synth` alone: `glirps` places no
-// bound on `SoundProgram::output_gain`.
 TEST(SynthTests, Render_AboveUnityGain_DoesNotConstrainSamplesToFullScale)
 {
 	// ARRANGE
@@ -197,8 +192,6 @@ TEST(SynthTests, Start_WithFreeSlotButTightVoicePool_ReturnsVoicesExhausted)
 	// Two voices remain free with both slots taken; free one slot so the voice
 	// ceiling is the one that is short.
 	synth.release(*first);
-	// A released slot is not reclaimable until `render` itself acknowledges
-	// the release.
 	std::vector<float> acknowledge_release(glirps::sub_block_frame_count, 0.0f);
 	synth.render(acknowledge_release);
 	glirps::test_support::TestProgramStorage four_voice_storage;
@@ -213,8 +206,8 @@ TEST(SynthTests, Start_WithFreeSlotButTightVoicePool_ReturnsVoicesExhausted)
 	EXPECT_EQ(voices.error(), glirps::StartError::voices_exhausted);
 }
 
-// `start` rejects invalid programs -- no voices, too many voices, and a table
-// with no values -- and no failing case leaves a chip instance slot or a
+// `start` rejects invalid programs (no voices, too many voices, and a table
+// with no values), and no failing case leaves a chip instance slot or a
 // voice slot claimed: `start` never steals, queues, or partially allocates.
 TEST(SynthTests, Start_InvalidPrograms_RejectedAndNoSlotClaimed)
 {
@@ -312,11 +305,7 @@ TEST(SynthTests, Start_StoresNonOwningPointer_SubsequentTickObservesSourceMutati
 	const float after_frequency = blocks.at(0).voices.at(0).frequency_hz;
 
 	// ASSERT: the next tick reflects the mutated pitch, one octave above the
-	// pre-mutation tick, rather than the value `start` saw. `EXPECT_NEAR`
-	// rather than an exact comparison: the two frequencies come from
-	// independent `frequencyHertz` evaluations at different semitone inputs,
-	// which need not agree to the last float ULP even though they are
-	// mathematically exactly double one another.
+	// pre-mutation tick, rather than the value `start` saw.
 	EXPECT_NEAR(after_frequency, before_frequency * 2.0f, 0.1f);
 }
 
@@ -339,8 +328,6 @@ TEST(SynthTests, IsComplete_ReleasedHandle_IsTrueAndReleaseNoOp)
 	const bool complete_after_release = synth.isComplete(*first);
 	synth.release(*first);
 
-	// A released slot is not reclaimable until `render` itself acknowledges
-	// the release.
 	std::vector<float> output(glirps::sub_block_frame_count, 0.0f);
 	synth.render(output);
 	auto second = synth.start(program, 0);
@@ -510,7 +497,7 @@ TEST(SynthTests, Render_NonWholeSubBlockCount_IsRejectedOrZeroFilled)
 	// ACT & ASSERT
 #if defined(NDEBUG)
 	// Release: no assert, so the violated contract must still produce a
-	// defined result -- the partial sub-block is zeroed, not left stale.
+	// defined result: the partial sub-block is zeroed, not left stale.
 	synth.render(output);
 	for (const float sample : output)
 		EXPECT_FLOAT_EQ(sample, 0.0f);
@@ -523,7 +510,6 @@ TEST(SynthTests, Render_NonWholeSubBlockCount_IsRejectedOrZeroFilled)
 // An instance started and then rendered with no block applied produces
 // non-silent output shaped by its program's base values: an absent block
 // leaves every parameter at its base value rather than silence.
-// Built directly so this test exercises `Synth` alone.
 TEST(SynthTests, Render_NoBlockApplied_RendersProgramBaseValues)
 {
 	// ARRANGE
@@ -576,8 +562,6 @@ TEST(SynthTests, ApplyBlock_ReleasedHandle_IsIgnored)
 	ASSERT_TRUE(first.has_value());
 	synth.release(*first);
 
-	// A released slot is not reclaimable until `render` itself acknowledges
-	// the release.
 	std::vector<float> acknowledge_release(glirps::sub_block_frame_count, 0.0f);
 	synth.render(acknowledge_release);
 	auto second = synth.start(program, 0);
@@ -743,7 +727,7 @@ namespace
 		return storage.program;
 	}
 
-	// Frames spanned by one base control tick at the test sample rate.
+	// Frames spanned by one base tick at the test sample rate.
 	constexpr std::uint32_t frames_per_base_tick_synth = test_sample_rate_hz_synth / glirps::control_grid_base_rate_hz;
 }
 
@@ -770,8 +754,6 @@ TEST(SynthTests, Start_GainMultiplier_ScalesFirstBlockOutputGain)
 	const float scaled_gain = blocks.at(0).output_gain;
 
 	synth.release(*scaled);
-	// A released slot is not reclaimable until `render` itself acknowledges
-	// the release.
 	std::vector<float> acknowledge_release(glirps::sub_block_frame_count, 0.0f);
 	synth.render(acknowledge_release);
 	auto unity = synth.start(program, 0);
@@ -885,8 +867,6 @@ TEST(SynthTests, EvaluateTick_TableWithLoopPoint_YieldsExpectedValueSequence)
 	// ARRANGE
 	glirps::impl::Synth synth(1, 4);
 	synth.configure(test_sample_rate_hz_synth);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts the table's value sequence, not quantization.
 	synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage program_storage;
 	auto program = sustainedTriangleProgram(program_storage);
@@ -916,8 +896,6 @@ TEST(SynthTests, EvaluateTick_TablesOfDifferentLengths_AdvanceIndependently)
 	// ARRANGE
 	glirps::impl::Synth synth(1, 4);
 	synth.configure(test_sample_rate_hz_synth);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts independent table times, not quantization.
 	synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage program_storage;
 	auto program = sustainedTriangleProgram(program_storage);
@@ -976,8 +954,6 @@ TEST(SynthTests, EvaluateTick_PitchSlideAndPulseWidthDelta_AccumulateAndClamp)
 	// ARRANGE
 	glirps::impl::Synth synth(1, 4);
 	synth.configure(test_sample_rate_hz_synth);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts accumulation and clamping, not quantization.
 	synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage program_storage;
 	auto program = sustainedTriangleProgram(program_storage);
@@ -1015,8 +991,6 @@ TEST(SynthTests, UpdateControlParams_ShiftsPitchAndOverridesCutoff)
 	// ARRANGE
 	glirps::impl::Synth synth(1, 4);
 	synth.configure(test_sample_rate_hz_synth);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts the control law, not quantization.
 	synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage program_storage;
 	auto program = sustainedTriangleProgram(program_storage);
@@ -1064,8 +1038,6 @@ TEST(SynthTests, UpdateControlParams_ScalesChipOutputGainPerTick)
 	// ARRANGE
 	glirps::impl::Synth synth(1, 4);
 	synth.configure(test_sample_rate_hz_synth);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts the control law, not quantization.
 	synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage program_storage;
 	auto program = sustainedTriangleProgram(program_storage);
@@ -1343,8 +1315,6 @@ TEST(SynthTests, EvaluateTick_LongSlide_ClampsFrequencyAndKeepsEnvelopeRunning)
 	// ARRANGE
 	glirps::impl::Synth descending_synth(1, 4);
 	descending_synth.configure(test_sample_rate_hz_synth);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts the clamp bounds exactly, not quantization.
 	descending_synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage descending_program_storage;
 	auto descending_program = sustainedTriangleProgram(descending_program_storage);
@@ -1448,8 +1418,6 @@ TEST(SynthTests, EvaluateTick_NoTables_HoldsBaseValues)
 	// ARRANGE
 	glirps::impl::Synth synth(1, 4);
 	synth.configure(test_sample_rate_hz_synth);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts the held base values exactly, not quantization.
 	synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage program_storage;
 	auto program = sustainedTriangleProgram(program_storage);
@@ -1489,7 +1457,7 @@ TEST(SynthTests, EvaluateTick_FrequencyChange_TakesEffectAtBoundary)
 	synth.configure(test_sample_rate_hz_synth);
 	glirps::test_support::TestProgramStorage program_storage;
 	auto program = sustainedTriangleProgram(program_storage);
-	program.base_pitch.semitone = 48;  // C-4, comfortably inside one zero-crossing per few samples.
+	program.base_pitch.semitone = 48;  // C-4.
 	// Bypass the filter: it is irrelevant to what this test measures, and its
 	// default lowpass otherwise rings enough near a waveform's zero crossing
 	// to add spurious crossings to the frequency estimate.
@@ -1503,8 +1471,8 @@ TEST(SynthTests, EvaluateTick_FrequencyChange_TakesEffectAtBoundary)
 
 	// ACT: evaluate and apply the first (unchanged) tick, then render and
 	// discard one warm-up tick, so the envelope's attack and the
-	// decimator's settling transient -- both expected startup behavior,
-	// neither part of what this test measures -- land outside the segments
+	// decimator's settling transient (both expected startup behavior,
+	// neither part of what this test measures) land outside the segments
 	// measured below. Each measured segment is many multiples of the base
 	// tick's length, both to give the zero-crossing estimate enough cycles
 	// for a stable reading, and to prove the new pitch holds rather than
@@ -1619,9 +1587,6 @@ TEST(SynthTests, EvaluateTick_OneShotReleaseTick_GatesOffAfterAuthoredCount_Sust
 
 	glirps::impl::Synth sustained_synth(1, 4);
 	sustained_synth.configure(test_sample_rate_hz_synth);
-	// Named rather than a temporary passed straight to `start`: `Synth`
-	// stores a non-owning pointer, so the
-	// program must outlive the instance, not just the `start` call.
 	glirps::test_support::TestProgramStorage sustained_storage;
 	const auto sustained = sustainedTriangleProgram(sustained_storage);
 	auto sustained_handle = sustained_synth.start(sustained, 0);
@@ -1686,9 +1651,6 @@ TEST(SynthTests, SetGate_SustainedInstance_HoldsUntilCalledThenReleases_OneShotU
 	// ARRANGE
 	glirps::impl::Synth synth(2, 8);
 	synth.configure(test_sample_rate_hz_synth);
-	// Named rather than a temporary passed straight to `start`: `Synth`
-	// stores a non-owning pointer, so the
-	// program must outlive the instance, not just the `start` call.
 	glirps::test_support::TestProgramStorage sustained_storage;
 	const auto sustained = sustainedTriangleProgram(sustained_storage);
 	auto sustained_handle = synth.start(sustained, 0);
@@ -1703,9 +1665,7 @@ TEST(SynthTests, SetGate_SustainedInstance_HoldsUntilCalledThenReleases_OneShotU
 
 	std::array<glirps::ParameterBlock, 1> blocks;
 
-	// ACT & ASSERT: with no `setGate` call, the sustained instance holds
-	// across many ticks -- it keeps sounding to the end of the render, since
-	// its gate is held by caller state.
+	// ACT & ASSERT: with no `setGate` call, the sustained instance stays gated on.
 	constexpr std::uint32_t held_ticks = 50;
 	for (std::uint32_t t = 0; t < held_ticks; ++t)
 	{
@@ -1751,13 +1711,12 @@ TEST(SynthTests, IsComplete_TrueOnceLastVoiceEnvelopeFinishes_NotBefore)
 	synth.render(sustaining);
 	EXPECT_FALSE(synth.isComplete(*handle));
 
-	// ACT: release the gate through the control path -- `render` keeps
-	// reapplying the last block `applyBlock` installed, so `setGate` only
-	// reaches the renderer once `evaluateTick` and `applyBlock` run again, since
-	// `applyBlock` is the only render-side entry point that changes an
-	// instance's parameters -- then render well past the release tail. The
-	// frame count is a whole number of sub-blocks, since `render` consumes
-	// whole sub-blocks.
+	// ACT: release the gate through the control path, then render well past
+	// the release tail. `render` keeps reapplying the last block `applyBlock`
+	// installed, so `setGate` only reaches the renderer once `evaluateTick` and
+	// `applyBlock` run again, since `applyBlock` is the only render-side entry
+	// point that changes an instance's parameters. The frame count is a whole
+	// number of sub-blocks, since `render` consumes whole sub-blocks.
 	synth.setGate(*handle, false);
 	std::array<glirps::ParameterBlock, 1> blocks;
 	ASSERT_EQ(synth.evaluateTick(*handle, blocks), 1u);
@@ -1774,7 +1733,7 @@ TEST(SynthTests, IsComplete_TrueOnceLastVoiceEnvelopeFinishes_NotBefore)
 // with `sustain_level: 0` and a fast decay, the envelope alone reaches
 // `release`-and-silence well before the per-voice gate table's own false
 // value, so `Synth::isComplete` must not report true merely because
-// `ChipInstance::isComplete()` (per-voice envelope only) does -- the
+// `ChipInstance::isComplete()` (per-voice envelope only) does: the
 // chip-wide gate has not yet closed, and this same voice is retriggered a
 // tick later.
 TEST(SynthTests, IsComplete_PerVoiceGateTableRetrigger_NotCompleteUntilChipWideGateCloses)
@@ -1890,9 +1849,6 @@ TEST(SynthTests, ReusedSlotRendersIdenticallyToFreshInstance)
 	std::vector<float> first(4 * glirps::sub_block_frame_count);
 	synth.render(first);
 	synth.release(*handle);
-	// A released slot is not reclaimable until `render` itself acknowledges
-	// the release. The slot is free during this call, so
-	// it contributes nothing and does not affect `second`.
 	std::vector<float> acknowledge_release(glirps::sub_block_frame_count, 0.0f);
 	synth.render(acknowledge_release);
 
@@ -1934,8 +1890,6 @@ TEST(SynthTests, ReusedSlotWithFewerVoicesMatchesFreshRenderAndCompletes)
 	std::vector<float> discarded(2 * glirps::sub_block_frame_count);
 	synth.render(discarded);
 	synth.release(*wide);
-	// A released slot is not reclaimable until `render` itself acknowledges
-	// the release.
 	std::vector<float> acknowledge_release(glirps::sub_block_frame_count, 0.0f);
 	synth.render(acknowledge_release);
 
@@ -1974,7 +1928,7 @@ TEST(SynthTests, ReusedSlotWithFewerVoicesMatchesFreshRenderAndCompletes)
 
 namespace
 {
-	// The first control tick's voice 0 frequency for `program` started at
+	// The first base tick's voice 0 frequency for `program` started at
 	// `seed`, at full float resolution (grit scale 0 is the identity
 	// transform), so the result is comparable to
 	// `frequencyHertz` bit for bit with no quantization noise.
@@ -2029,9 +1983,7 @@ TEST(SynthTests, SeededPitchVariationSnapsToDeclaredScaleDegreesAcrossSeeds)
 		EXPECT_FLOAT_EQ(firstTickFrequencyHz(without_scale, seed), unvaried_frequency);
 }
 
-// A hand-built program whose loop start lies past its table's end is
-// rejected by `start`, because a loop has to wrap back into the table. A loop
-// at the sixth value of a two-value table lies past the table's end.
+// `start` rejects a loop start past the table's end.
 TEST(SynthTests, Start_LoopStartPastTableEnd_Rejected)
 {
 	// ARRANGE
@@ -2104,8 +2056,6 @@ TEST(SynthTests, SetGritScale_NonFiniteAndOutOfRange_AreClamped)
 	// A scale past 1 is clamped to 1 rather than allowed to floor every
 	// parameter to its minimum.
 	synth.release(*nan_handle);
-	// A released slot is not reclaimable until `render` itself acknowledges
-	// the release.
 	std::vector<float> acknowledge_release(glirps::sub_block_frame_count, 0.0f);
 	synth.render(acknowledge_release);
 	synth.setGritScale(1000.0f);
@@ -2116,7 +2066,7 @@ TEST(SynthTests, SetGritScale_NonFiniteAndOutOfRange_AreClamped)
 	EXPECT_GE(blocks.at(0).output_gain, 0.0f);
 }
 
-// `Synth::configure(sample_rate_hz, oversampling_factor)` honours the factor:
+// `Synth::configure(sample_rate_hz, oversampling_factor)` honors the factor:
 // the default-factor overload and an explicit default render identically, and
 // a different factor changes the rendered samples.
 TEST(SynthTests, Configure_OversamplingFactor_IsHonored)
@@ -2152,9 +2102,7 @@ TEST(SynthTests, Configure_OversamplingFactor_IsHonored)
 	EXPECT_NE(default_out, low_out);
 }
 
-// A hand-built program whose grit profile carries a zero or out-of-range
-// `tick_multiplier` is rejected by `start`: a zero multiplier would emit no
-// blocks, never gate off, and hold the slot forever.
+// `start` rejects a zero or out-of-range `tick_multiplier`.
 TEST(SynthTests, Start_RejectsOutOfRangeTickMultiplier)
 {
 	// ARRANGE
@@ -2177,9 +2125,7 @@ TEST(SynthTests, Start_RejectsOutOfRangeTickMultiplier)
 	EXPECT_EQ(huge_handle.error(), glirps::StartError::invalid_program);
 }
 
-// A hand-built program whose grit profile carries a bit depth outside the
-// supported range is rejected by `start`, so the grit stage's `1 << bits` can never
-// shift by an unvalidated width.
+// `start` rejects an out-of-range grit bit depth.
 TEST(SynthTests, Start_RejectsOutOfRangeBitDepth)
 {
 	// ARRANGE
@@ -2197,10 +2143,7 @@ TEST(SynthTests, Start_RejectsOutOfRangeBitDepth)
 	EXPECT_EQ(handle.error(), glirps::StartError::invalid_program);
 }
 
-// A hand-built program whose `pulse_width_delta_bounds` has `max` below
-// `min`, or a bound outside the field's own `[0, 1]` runtime range, is
-// rejected by `start`, so `clampAccumulate`'s `std::clamp` can never see an
-// inverted `[lo, hi]` interval, which is undefined behaviour.
+// `start` rejects inverted or out-of-range `pulse_width_delta_bounds`.
 TEST(SynthTests, Start_RejectsInvalidAccumulateBounds_Inverted)
 {
 	// ARRANGE
@@ -2237,10 +2180,7 @@ TEST(SynthTests, Start_RejectsInvalidAccumulateBounds_OutOfRange)
 	EXPECT_EQ(out_of_range_handle.error(), glirps::StartError::invalid_program);
 }
 
-// A hand-built program whose `gain` table holds a `ValueRange` with `max`
-// below `min` is rejected by `start`, so the evaluator can never construct a
-// `std::uniform_real_distribution` with an inverted range, which is
-// undefined behaviour.
+// `start` rejects a table value whose `max` is below its `min`.
 TEST(SynthTests, Start_InvertedValueRange_Rejected)
 {
 	// ARRANGE
@@ -2263,10 +2203,7 @@ TEST(SynthTests, Start_InvertedValueRange_Rejected)
 	EXPECT_EQ(handle.error(), glirps::StartError::invalid_program);
 }
 
-// A hand-built program whose `ring_mod_source`/`hard_sync_source` names an
-// out-of-range or self-referential voice index is rejected by `start`, so
-// the unguarded `voices_.at(source_index)` read every render performs can
-// never reach an invalid index, which is undefined behaviour.
+// `start` rejects a routing source that is out of range or names its own voice.
 TEST(SynthTests, Start_RejectsInvalidRoutingSource_SelfReferential)
 {
 	// ARRANGE
@@ -2343,15 +2280,9 @@ TEST(SynthTests, Render_RingModSourceRouting_ProducesDifferentOutputThanUnrouted
 	EXPECT_NE(unrouted_output, routed_output);
 }
 
-// See the ring-mod test above for the overall shape; the hard-sync
-// routing needs one `evaluateTick`/`applyBlock` pair first, since unlike
-// ring modulation's directly-audible self-multiplication, hard sync's
-// phase-reset effect is only observable when `modulator` runs at a
-// different frequency than `carrier`'s -- at an identical frequency and
-// starting phase, the reset would land on an instant `carrier`'s own phase
-// already reaches unsynced, producing no audible difference -- and a
-// per-voice frequency offset only takes effect through the arpeggio table's
-// per-tick evaluation, not through `start`'s uniform base frequency.
+// The modulator runs an octave above the carrier, because hard sync between
+// equal frequencies and phases changes nothing. The arpeggio offset needs an
+// evaluated and applied tick.
 TEST(SynthTests, Render_HardSyncSourceRouting_ProducesDifferentOutputThanUnrouted)
 {
 	// ARRANGE
@@ -2416,8 +2347,6 @@ TEST(SynthTests, EvaluateTick_StepIntervalTwoTicks_AdvancesAtHalfTheRateOfOneTic
 			= glirps::test_support::makeIntTable(program_storage, {0, 12}, 1, ticks_per_value);
 		return program_storage;
 	};
-	// `start` stores a non-owning pointer to its program,
-	// so each program is a named local held for the whole test rather than a temporary passed directly to `start`.
 	auto storage_rate1 = build(1);
 	glirps::impl::Synth synth_rate1(1, 4);
 	synth_rate1.configure(test_sample_rate_hz_synth);
@@ -2459,8 +2388,6 @@ TEST(SynthTests, EvaluateTick_PitchSlideBounds_ClampsAccumulatorNarrowerThanUnbo
 	// ARRANGE
 	glirps::impl::Synth synth(1, 4);
 	synth.configure(test_sample_rate_hz_synth);
-	// Grit scale 0 is the identity transform (full float resolution): this test
-	// asserts the authored bound exactly, not quantization.
 	synth.setGritScale(0.0f);
 	glirps::test_support::TestProgramStorage program_storage;
 	auto program = sustainedTriangleProgram(program_storage);
@@ -2560,8 +2487,8 @@ TEST(SynthTests, EvaluateTick_GateTable_AndedWithChipWideGate_NeverOverrides)
 	EXPECT_EQ(actual_gate_on, expected_gate_on);
 }
 
-// A voice whose `start_subtick` is nonzero holds inactive -- gated off, no
-// table evaluated -- until a block reaches that time, then becomes active
+// A voice whose `start_subtick` is nonzero holds inactive (gated off, no
+// table evaluated) until a block reaches that time, then becomes active
 // exactly as `start_subtick == 0` does: gated on, tables at time 0, since
 // `start_subtick` is the time origin of the voice's tables.
 TEST(SynthTests, EvaluateTick_StartSubtick_HoldsInactiveThenBeginsFreshAtTime)
@@ -2656,7 +2583,7 @@ TEST(SynthTests, EvaluateTick_RandomValue_SameSeedDeterministic_DifferentSeedsDi
 	auto handle_c = synth_c.start(program_c, 99);
 	ASSERT_TRUE(handle_c.has_value());
 
-	// Draw many ticks -- long enough that a different-seed sequence matching
+	// Draw many ticks, long enough that a different-seed sequence matching
 	// by coincidence, or every draw landing back on the plain table value of
 	// 0, is practically impossible.
 	// ACT
@@ -2688,7 +2615,7 @@ TEST(SynthTests, EvaluateTick_RandomValue_SameSeedDeterministic_DifferentSeedsDi
 }
 
 // An instance started with a nonzero onset delay holds every voice inactive
-// -- gated off, every table still at its start -- until the delay elapses,
+// (gated off, every table still at its start) until the delay elapses,
 // exactly as a voice with a later `start_subtick` holds. Base ticks are
 // 1-indexed in the delay, so a delay of 3 activates on the third tick
 // `evaluateTick` emits, keeping onset on the base control grid.
@@ -2724,7 +2651,7 @@ TEST(SynthTests, EvaluateTick_OnsetDelay_HoldsInactiveThenBeginsFreshAtTheDelaye
 	ASSERT_EQ(synth.evaluateTick(*handle, start_blocks), 1u);
 
 	// ASSERT: gated on, at the arpeggio's first value (offset 0) exactly as
-	// an undelayed voice is on its first tick -- the table time did not run
+	// an undelayed voice is on its first tick: the table time did not run
 	// while the voice was held.
 	EXPECT_TRUE(start_blocks.at(0).voices.at(0).gate_on);
 	EXPECT_NEAR(start_blocks.at(0).voices.at(0).frequency_hz, glirps::frequencyHertz(36, 0.0f), 0.01f);
@@ -2777,9 +2704,8 @@ TEST(SynthTests, EvaluateTick_StartSubtickAndOnsetDelay_ActivatesAtTheLaterOfThe
 	EXPECT_EQ(first_active_tick(4, 0), 4u);
 }
 
-// The audible half of the same guarantee: a held instance renders silence.
-// Its envelope does not attack, so nothing reaches the output until the tick
-// the delay elapses on is applied.
+// An instance held by an onset delay renders silence until the block that ends
+// the delay is applied.
 TEST(SynthTests, Render_OnsetDelay_ProducesSilenceUntilTheDelayElapses)
 {
 	// ARRANGE
@@ -2818,7 +2744,7 @@ TEST(SynthTests, Render_OnsetDelay_ProducesSilenceUntilTheDelayElapses)
 }
 
 // A one-shot whose chip-wide gate closes before the render side has applied
-// anything SHALL NOT be judged complete while the gate-on block it emitted is
+// anything must not be judged complete while the gate-on block it emitted is
 // still queued. The control side closes `chip_gate_open` as soon as it
 // evaluates past `release_subtick`, which for a short one-shot is before the
 // gate-on block is applied; latching there would reclaim the instance before
@@ -2849,7 +2775,7 @@ TEST(SynthTests, IsComplete_ShortOneShotWithDeferredOnset_StaysIncompleteUntilIt
 	ASSERT_FALSE(gate_off_blocks.at(0).voices.at(0).gate_on);
 	synth.render(block);
 
-	// ASSERT: not complete -- its gate-on has not been applied yet.
+	// ASSERT: not complete, since its gate-on has not been applied yet.
 	EXPECT_FALSE(synth.isComplete(*handle));
 
 	// ACT: the queued blocks arrive in order and the sound runs out.
@@ -2868,7 +2794,7 @@ TEST(SynthTests, IsComplete_ShortOneShotWithDeferredOnset_StaysIncompleteUntilIt
 }
 
 // The other side of the same trade: an instance that emits no gate-on at all
-// can never sound, so it SHALL complete rather than hold its pool slot forever
+// can never sound, so it must complete rather than hold its pool slot forever
 // waiting for a gate that will never arrive.
 TEST(SynthTests, IsComplete_DeferredOnsetThatNeverGatesOn_CompletesRatherThanHoldingItsSlot)
 {

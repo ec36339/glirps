@@ -42,8 +42,7 @@ namespace glirps::test_support
 					{.min = 5.0f, .max = 5.0f}});
 		}
 
-		// Builds the program of `golden`. `storage` SHALL outlive every use of the
-		// returned program.
+		// Builds the program of `golden`.
 		SoundProgram makeProgram(TestProgramStorage& storage, const GoldenCase& golden)
 		{
 			SoundProgram& program = storage.program;

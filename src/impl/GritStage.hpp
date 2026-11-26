@@ -12,13 +12,8 @@ namespace glirps::impl
 {
 	namespace detail
 	{
-		// `ParameterBlock` field ranges this stage quantizes against.
-		// `gain_authored_ceiling`, not `gain_ceiling`, is deliberate: this
-		// stage quantizes gain against the nominal authored reference the
-		// real chip's volume register matches, not against `evaluateTick`'s
-		// wider degenerate-value clamp (`ParameterBlock.hpp`'s field-range
-		// comment). The others are still shared with that clamp so neither
-		// can drift from the other.
+		// Gain steps are sized over `[gain_floor, gain_authored_ceiling]`;
+		// higher gains stay on the same lattice.
 		using glirps::frequency_hz_floor;
 		using glirps::gain_authored_ceiling;
 		using glirps::gain_floor;
@@ -31,14 +26,10 @@ namespace glirps::impl
 		// bit depths quantize against the range the real chip actually spans
 		// at that bit depth, rather than the field's full digital range.
 		//
-		// The 16-bit frequency register is a linear phase increment added
-		// each clock to a 24-bit accumulator: `Fout = Fn * Fclk / 2^24`. Its
-		// per-LSB step is fixed by the accumulator width, not by the
-		// register's own bit count, so `sid_pitch_reference_range_hz` fixes
-		// the range at the register's max value at the PAL clock; dividing by
-		// `2^bits - 1` below reproduces that fixed step at the reference
-		// `bit_depths.pitch` (`reference_pitch_bits`) and scales it for any
-		// other authored value.
+		// SID frequency formula: `Fout = Fn * Fclk / 2^24`. The pitch
+		// reference range is `Fout` at the largest `Fn` and the PAL clock, so
+		// at `reference_pitch_bits` and full grit one step equals one register
+		// LSB.
 		constexpr float sid_pal_clock_hz = 985248.0f;
 		constexpr std::uint32_t sid_phase_accumulator_bits = 24;
 		constexpr std::uint32_t sid_frequency_register_bits = 16;
@@ -94,10 +85,7 @@ namespace glirps::impl
 	// transform, and `profile`'s bit depths at 1.
 	// Pitch and cutoff quantize against a fixed SID 6581 reference range
 	// rather than the field's full digital range, so this needs no sample
-	// rate: `cutoff_hz` and `frequency_hz` are still clamped to their
-	// sample-rate-relative legal range by the caller afterward, so
-	// quantization cannot round a value past a bound.
-	// Does not clamp itself for the same reason.
+	// rate. Does not clamp; the caller does.
 	inline void applyGrit(ParameterBlock& block, const GritProfile& profile, float grit_scale) noexcept
 	{
 		const SteppingMode mode = profile.stepping_mode;
