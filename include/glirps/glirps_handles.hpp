@@ -1,21 +1,8 @@
 #pragma once
 
 /// @file
-/// `HandleTraits` specializations for GLIRPS's two opaque
-/// handle types, so a consumer can own one via `shims::Handle<T>`
-/// instead of calling `synthDestroy`/`blockRendererDestroy` itself at every
-/// early-return path.
-/// Both deleters are stateless, so `shims::Handle<T>` contributes zero extra
-/// bytes over the raw pointer via `[[no_unique_address]]`.
-///
-/// This header is a separate, optional addition to the library: neither
-/// glirps.hpp nor glirps_render.hpp includes it, and neither depends on
-/// `Handle.hpp`. A consumer that wants this ownership convenience
-/// includes `glirps_handles.hpp` explicitly.
-///
-/// `shims::Handle` is the RAII owner declared in `Handle.hpp`, and the
-/// `HandleTraits` specializations below live in the namespace where that
-/// header declares the primary template.
+/// Optional `SynthOwner` and `BlockRendererOwner`, which destroy the handle on
+/// scope exit. The other headers do not include this one.
 
 #include "BlockRendererHandle.hpp"
 #include "SynthHandle.hpp"

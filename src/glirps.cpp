@@ -16,7 +16,7 @@ namespace glirps
 {
 	namespace
 	{
-		// Adapts the C-style `MixerCallbacks` to the backend `Mixer` contract.
+		// Adapts the C-style `MixerCallbacks` to the internal `Mixer` interface.
 		// Lives only in this translation unit.
 		class CallbackMixer final : public impl::Mixer
 		{
@@ -79,7 +79,7 @@ namespace glirps
 // two mixers it may reference, and the allocator and logger of the environment
 // it was created with. The mixers are declared before `backend` so they
 // outlive it: `Synth` stores a non-owning `Mixer&`, so the referenced mixer
-// SHALL be destroyed after the synth.
+// must be destroyed after the synth.
 struct glirps::SynthObject final
 {
 	SynthObject(std::uint32_t max_chip_instances,
@@ -96,8 +96,7 @@ struct glirps::SynthObject final
 	impl::AllocatorRef allocator;
 	// The log callback of the environment.
 	impl::Logger logger;
-	// Restores the built-in mono mixer, used for a null or partially-null
-	// callback struct.
+	// Installed when the callbacks are null or incomplete.
 	impl::SumToMonoMixer default_mixer;
 	// The active callback adaptor, present only while custom callbacks are
 	// installed.

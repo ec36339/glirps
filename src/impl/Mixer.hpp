@@ -12,7 +12,7 @@ namespace glirps::impl
 	// entry point's constraints: no allocation, no lock, no syscall, no
 	// logging.
 	//
-	// This is the seam a consumer replaces to add panning, distance
+	// A consumer mixer replaces this stage to add panning, distance
 	// attenuation, bus routing, or a master limiter. `glirps` supplies
 	// `SumToMonoMixer` so a consumer that wants none of that installs nothing.
 	class Mixer
@@ -31,7 +31,7 @@ namespace glirps::impl
 
 		// Begins one sub-block. `output` holds
 		// `frame_count * getChannelCount()` samples and its previous contents
-		// are undefined. Every sample SHALL be written by the time `endBlock`
+		// are undefined. Every sample must be written by the time `endBlock`
 		// returns.
 		virtual void beginBlock(std::span<float> output, std::uint32_t frame_count) noexcept = 0;
 

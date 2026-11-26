@@ -6,28 +6,16 @@
 
 namespace glirps::impl
 {
-	// Places control ticks on the sample timeline at the rate `configure`
+	// Places effective ticks on the sample timeline at the rate `configure`
 	// fixed: one global base grid at `control_grid_base_rate_hz`, with each
 	// sound definition ticking at an integer multiple of it so all sounds
 	// stay phase-aligned. `tick_index`
 	// counts effective ticks, at `control_grid_base_rate_hz * tick_multiplier`,
 	// not base ticks.
 	//
-	// Every position is computed as an absolute value from the tick index,
-	// with the integer division performed last, so the placement error is
-	// bounded below one sample and never accumulates. Computing a per-tick
-	// increment and multiplying it instead loses the remainder once and then
-	// scales that loss by the tick index: at 44.1 kHz with a tick multiplier
-	// of 16 the exact spacing is 55.125 frames, a truncated increment gives
-	// 55, and the render drifts 2.27 ms per second without bound.
-	//
-	// A tick is therefore not generally a whole number of `sub_block_frame_count`
-	// frames, and is not required to be: at 44.1 kHz a base tick is 882 frames,
-	// which is not a multiple of `sub_block_frame_count` at any tick
-	// multiplier. `subBlockForTick` resolves a tick to the sub-block
-	// containing it, which is also the rule for commands applied to control
-	// ticks, given that rendering runs in fixed sub-blocks of
-	// `sub_block_frame_count` frames.
+	// Positions are computed from the tick index with the division last, so
+	// rounding error stays below one sample and never accumulates. A tick need
+	// not be a whole number of sub-blocks.
 	struct ControlGrid
 	{
 		// Output sample rate the grid places ticks against, as fixed by

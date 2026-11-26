@@ -15,7 +15,7 @@ namespace glirps::impl
 	// the 6581.
 	inline constexpr std::uint32_t noise_clock_bit_mask = 1u << 19;
 
-	// Default pulse width (square) for voices whose waveform is not a pulse.
+	// Initial pulse width (square wave).
 	inline constexpr float default_pulse_width = 0.5f;
 
 	// Waveform formulas over the normalized phase t in [0, 1).
@@ -80,10 +80,7 @@ namespace glirps::impl
 		// whose sync source overflowed.
 		void resetPhase() noexcept { phase_ = 0; }
 
-		// Returns the oscillator to its construction state: phase and phase
-		// increment zero, pulse width the default, overflow clear. Used when a
-		// chip slot is handed to a new instance so the previous occupant's
-		// phase and pitch cannot carry over.
+		// Resets for slot reuse.
 		void reset() noexcept
 		{
 			phase_ = 0;

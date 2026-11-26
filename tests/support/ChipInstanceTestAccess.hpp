@@ -6,11 +6,7 @@
 
 namespace glirps::impl
 {
-	// Test-only access to `ChipInstance`'s smoothed ramp state, which the
-	// render path entangles with the filter and envelope. Lives in the test
-	// target rather than in the library, and `ChipInstance` only befriends it,
-	// so production code gains no accessor; the friend declaration in
-	// `ChipInstance` is the only production footprint.
+	// Test-only access to `ChipInstance`'s smoothed ramp state.
 	struct ChipInstanceTestAccess
 	{
 		// The chip's currently smoothed filter cutoff, in hertz.

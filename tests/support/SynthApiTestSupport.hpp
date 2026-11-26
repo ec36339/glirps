@@ -19,8 +19,7 @@ namespace glirps::test_support
 	inline constexpr std::uint32_t frames_per_base_tick = test_sample_rate_hz / control_grid_base_rate_hz;
 
 	// A one-voice program with no authored release: a sustained instance the
-	// consumer gates through `synthSetGate`. `storage` SHALL outlive every
-	// use of the returned `SoundProgram`.
+	// consumer gates through `synthSetGate`.
 	inline SoundProgram makeSustainedProgram(TestProgramStorage& storage)
 	{
 		storage.program.base_pitch = Pitch{.semitone = 36, .cents = 0};
@@ -43,7 +42,7 @@ namespace glirps::test_support
 		return peak;
 	}
 
-	// Evaluates one base control tick, applies its blocks, renders one base
+	// Evaluates one base tick, applies its blocks, renders one base
 	// tick's worth of frames, and returns the peak of the rendered output.
 	inline float renderOneBaseTick(SynthHandle synth, ChipInstanceHandle instance)
 	{

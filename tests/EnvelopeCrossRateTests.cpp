@@ -57,10 +57,7 @@ namespace
 
 TEST(EnvelopeCrossRateTests, SetRatesInSeconds_AtDifferentSampleRates_ProduceSameDurationWithinOnePercent)
 {
-	// ARRANGE: envelope rates are converted from seconds to samples at
-	// `synthStart`, using whatever rate `configure` fixed, never on the render
-	// path. A device granting 44100 Hz rather than the offline path's fixed
-	// 48000 Hz SHALL still produce the authored duration in real time.
+	// ARRANGE: an envelope's durations in seconds must match at different sample rates.
 	constexpr float attack_seconds = 0.0183f;
 	constexpr float decay_seconds = 0.501f;
 	constexpr float release_seconds = 1.512f;

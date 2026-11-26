@@ -17,7 +17,7 @@ namespace glirps::impl
 	// output Nyquist, attenuated by at least `stopband_db`, and the passband
 	// ends one transition width below it, flat within 0.1 dB. At a 48000 Hz
 	// output this gives a passband to 20 kHz and a stopband from 24 kHz.
-	// Taps are computed once at construction and never on the render path.
+	// Taps are never computed on the render path.
 	// Only the decimated output samples are computed, which avoids filtering
 	// samples that would be discarded.
 	class Decimator
@@ -26,11 +26,10 @@ namespace glirps::impl
 		// Constructs a decimation FIR for `output_rate_hz` at
 		// `oversampling_factor`, computing its taps once at construction. The
 		// tap and history buffers allocate through `allocator`, so a failed
-		// allocation throws `std::bad_alloc`. Both buffers are sized in their
-		// constructors rather than built from the allocator alone: the
-		// allocator-only `std::vector` constructor is `noexcept`, yet a debug
-		// standard library may allocate bookkeeping in it, so a failed
-		// allocation there would terminate instead of throwing.
+		// allocation throws `std::bad_alloc`. Size both buffers in the member
+		// initializers: the allocator-only `std::vector` constructor is
+		// `noexcept` but may allocate in debug builds, so a failure would
+		// terminate.
 		Decimator(std::uint32_t output_rate_hz,
 			std::uint32_t oversampling_factor,
 			const AllocatorRef& allocator = AllocatorRef())
@@ -84,10 +83,7 @@ namespace glirps::impl
 			return static_cast<std::uint32_t>((taps_.size() - 1) / (2 * oversampling_factor_));
 		}
 
-		// Returns the decimator to its construction state: zero history, write
-		// position and phase at their starts. Used when a chip slot is handed
-		// to a new instance so the previous occupant's FIR history cannot
-		// colour the new sound's onset.
+		// Resets for slot reuse.
 		void reset() noexcept
 		{
 			history_.assign(taps_.size(), 0.0f);
@@ -160,7 +156,7 @@ namespace glirps::impl
 				taps_.at(n) = static_cast<float>(tap);
 				gain += tap;
 			}
-			// Normalise to unity DC gain, so the passband sits at 0 dB.
+			// Normalize to unity DC gain, so the passband sits at 0 dB.
 			for (float& tap : taps_)
 				tap = static_cast<float>(static_cast<double>(tap) / gain);
 		}

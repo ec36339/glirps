@@ -9,11 +9,7 @@
 
 namespace glirps
 {
-	/// Converts a note plus cents to a frequency. `cents` is a float so a
-	/// caller accumulating a `pitch_slide` table, which moves in fractional
-	/// cents per tick, does not round its accumulator to author the frequency.
-	/// `semitone` counts semitones above C-0, the same scale as `Pitch`.
-	/// `cents` is not range-checked here.
+	/// Converts a note plus cents to a frequency. `cents` may be fractional.
 	/// @param semitone Semitones above C-0.
 	/// @param cents Offset from `semitone`, in cents.
 	/// @return The frequency in hertz.

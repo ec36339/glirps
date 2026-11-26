@@ -54,10 +54,6 @@ namespace glirps::shims
 	/// Unique-ownership RAII wrapper for non-pointer handle types. The wrapped
 	/// value is destroyed by the traits' deleter on scope exit or reassignment.
 	///
-	/// A stateless `DeleterType` adds no bytes to the wrapper. A stateful
-	/// deleter adds its size to every instance, so such a `Handle` should not
-	/// be stored in collections.
-	///
 	/// Consumers should name the owning aliases, `SynthOwner` and
 	/// `BlockRendererOwner`, rather than this template.
 	/// @tparam T The handle type; trivially copyable, not void, not a reference.
@@ -139,8 +135,7 @@ namespace glirps::shims
 				deleter_(handle_);
 		}
 
-		/// Returns the raw handle value without checking for null.
-		/// @return The raw handle value.
+		/// @return The raw handle value, not checked for null.
 		T get() const noexcept
 		{
 			return handle_;
@@ -185,28 +180,24 @@ namespace glirps::shims
 			handle_ = h;
 		}
 
-		/// Returns whether a non-null handle is owned.
 		/// @return `true` if the owned handle is not null.
 		explicit operator bool() const noexcept
 		{
 			return !Traits::isNull(handle_);
 		}
 
-		/// Compares with the null sentinel.
 		/// @return `true` if the owned handle is null.
 		bool operator==(NullHandle) const noexcept
 		{
 			return Traits::isNull(handle_);
 		}
 
-		/// Returns the deleter.
 		/// @return The deleter.
 		const DeleterType& getDeleter() const noexcept
 		{
 			return deleter_;
 		}
 
-		/// Returns the deleter.
 		/// @return The deleter.
 		DeleterType& getDeleter() noexcept
 		{

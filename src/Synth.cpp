@@ -26,24 +26,12 @@ namespace glirps::impl
 {
 	namespace
 	{
-		// `ParameterBlock` field clamps, applied by `evaluateTick` after the
-		// grit stage so no block carries an out-of-range value. The ranges
-		// shared with the grit stage (`frequency_hz_floor`, `gain_*`,
-		// `pulse_width_*`, `resonance_q_*`) are declared once in
-		// `ParameterBlock.hpp`; only the cutoff clamp is local, because the grit
-		// stage deliberately quantizes cutoff against the reference chip's
-		// analog span instead.
 		constexpr float cutoff_hz_floor = 1.0f;
 		// The cutoff ceiling keeps the topology-preserving filter's prewarp
-		// finite; it is not an audibility
-		// limit.
+		// finite; it is not an audibility limit.
 		constexpr float cutoff_hz_nyquist_margin = 0.49f;
 
-		// The `Pitch.semitone` range. Applied to the
-		// summed base + variation + arpeggio semitones so a huge `arpeggio`
-		// value cannot overflow the signed 32-bit addition, and the summed pitch
-		// is clamped to `[min_semitone, max_semitone]` before conversion to
-		// frequency.
+		// Range the summed semitones are clamped to.
 		constexpr std::int64_t min_semitone = 0;
 		constexpr std::int64_t max_semitone = 119;
 
@@ -51,8 +39,7 @@ namespace glirps::impl
 		// `bit_depths` entry to `[min_bit_depth, max_bit_depth]`. `start`
 		// checks both so a `SoundProgram` cannot pass a zero multiplier (a silently
 		// never-releasing slot and a zero grid denominator) or a bit depth wide
-		// enough to make the grit stage's `1 << bits` shift undefined (the same
-		// class as the `loop` bounds check).
+		// enough to make the grit stage's `1 << bits` shift undefined.
 		constexpr std::uint32_t max_tick_multiplier = 16;
 		constexpr std::uint32_t min_bit_depth = 1;
 		constexpr std::uint32_t max_bit_depth = 24;
@@ -71,7 +58,7 @@ namespace glirps::impl
 		constexpr float cents_per_semitone = 100.0f;
 
 		// The seeded pitch variation draws one of three outcomes, minus one
-		// degree, no change, or plus one degree. `variation_step_bias` recentres the raw draw onto that range.
+		// degree, no change, or plus one degree. `variation_step_bias` recenters the raw draw onto that range.
 		constexpr std::uint64_t variation_step_count = 3;
 		constexpr std::int32_t variation_step_bias = 1;
 
@@ -103,19 +90,10 @@ namespace glirps::impl
 				++index;
 			}
 
-			// Step the reference index by the drawn step, wrapping cyclically
-			// so a step below the first degree or past the last lands on a
-			// declared degree instead of collapsing onto the reference
-			// position. A clamp would map both
-			// -1 and 0 to the reference index whenever `0` is the first
-			// degree, so the "minus one degree" outcome would never be heard and
-			// two thirds of seeds would produce no variation at all. Step 0 still reproduces the unvaried
-			// base pitch exactly, since it stays on the reference index.
+			// The index wraps around the ends of `scale`.
 			const std::int64_t size = static_cast<std::int64_t>(scale.size());
 			const std::int64_t raw_index = static_cast<std::int64_t>(zero_index) + step;
 			const auto chosen_index = static_cast<std::size_t>(((raw_index % size) + size) % size);
-			// `std::span` has no bounds-checked element accessor (`.at()`); `subspan` and
-			// `.front()` together bounds-check the index instead.
 			return scale.subspan(chosen_index, 1).front() - scale.subspan(zero_index, 1).front();
 		}
 
@@ -159,7 +137,7 @@ namespace glirps::impl
 		// Returns the seed of one random value's draw: a pure function of the
 		// table, the value's index in the table's pool, and the pass of the
 		// table it is drawn in. Every block of one pass therefore sees the same
-		// draw, including as a Catmull-Rom neighbour, and the next pass draws
+		// draw, including as a Catmull-Rom neighbor, and the next pass draws
 		// anew, without storage sized by the program.
 		[[nodiscard]] std::uint64_t
 		randomValueSeed(std::uint64_t table_seed, std::uint64_t value_index, std::uint64_t pass) noexcept
@@ -180,7 +158,7 @@ namespace glirps::impl
 		}
 
 		// Returns a table's end in subticks: the end of its last segment.
-		// `table.segments` SHALL be non-empty, which `start` guarantees.
+		// `table.segments` must be non-empty, which `start` guarantees.
 		template<typename Row>
 		[[nodiscard]] std::uint64_t tableEnd(const Table<Row>& table) noexcept
 		{
@@ -265,9 +243,9 @@ namespace glirps::impl
 		}
 
 		// The uniform Catmull-Rom spline through `p1` and `p2` at fraction
-		// `f`, with `p0` and `p3` as the outer neighbours, in its cubic
+		// `f`, with `p0` and `p3` as the outer neighbors, in its cubic
 		// Hermite form: the tangent at each end is half the difference of
-		// its two neighbours.
+		// its two neighbors.
 		[[nodiscard]] float catmullRom(float p0, float p1, float p2, float p3, float f) noexcept
 		{
 			constexpr float half = 0.5f;
@@ -282,7 +260,7 @@ namespace glirps::impl
 		// Evaluates `table` at scaled table time `time`.
 		// `std::nullopt` before the first segment starts, on every pass,
 		// where the parameter takes its base value. A segment never reads
-		// another segment's values: a Catmull-Rom neighbour outside the
+		// another segment's values: a Catmull-Rom neighbor outside the
 		// segment repeats the segment's own first or last value. Only a
 		// floating-point `Row` interpolates; `start` rejects interpolation on
 		// any other table. An interpolated value that is not finite, which
@@ -299,8 +277,6 @@ namespace glirps::impl
 			if (!position)
 				return std::nullopt;
 			const Segment& segment = *position->segment;
-			// `std::span` has no bounds-checked element accessor (`.at()`); `subspan` and
-			// `.front()` together bounds-check the index instead.
 			const auto values = std::span<const TableValue<Row>>(table.values, table.value_count)
 									.subspan(segment.first_value, segment.value_count);
 			const auto value_at = [&](std::size_t i)
@@ -382,7 +358,7 @@ namespace glirps::impl
 		// segment with no value, a zero interval, or values outside the pool;
 		// segment starts not strictly ascending or a segment starting before
 		// the previous one ends; a `step` segment of several values shorter
-		// than one control tick each, which could never be heard; an
+		// than one effective tick each, which could never be heard; an
 		// interpolation mode `allows_interpolation` forbids or out of range; a
 		// loop start at or past the end; or a `ValueRange` that is non-finite
 		// or inverted. The evaluator relies on every one of these to index and
@@ -452,7 +428,7 @@ namespace glirps::impl
 		// `StartError::invalid_program`. Only `gain`, `pitch_offset`,
 		// `pulse_width`, `cutoff` and `resonance` may interpolate: `waveform`
 		// and `gate` values are discrete, `arpeggio` is whole semitones, and
-		// an accumulate table adds its value once per control tick, so an
+		// an accumulate table adds its value once per effective tick, so an
 		// interpolated step would change the accumulated sum rather than
 		// smooth it. Assumes a valid `tick_multiplier`, which `start` checks
 		// first.
@@ -497,7 +473,7 @@ namespace glirps::impl
 		// `start` rejects with `StartError::invalid_program`. Without this
 		// check `clampAccumulate`'s
 		// `std::clamp` could see an inverted `[lo, hi]` interval, which is
-		// undefined behaviour.
+		// undefined behavior.
 		[[nodiscard]] bool hasInvalidAccumulateBounds(const SoundProgram& program) noexcept
 		{
 			const auto invalid = [](const AccumulateBounds& bounds, float default_floor, float default_ceiling)
@@ -562,10 +538,6 @@ namespace glirps::impl
 				|| !in_range(depths.resonance) || !in_range(depths.gain);
 		}
 
-		// `Synth::evaluateTick`'s concerns, split into named helpers. None reaches into `Synth::Impl`: every value
-		// a helper needs is passed as a plain parameter, so each is testable
-		// and readable independent of the slot it is called for.
-
 		// Writes `block`'s filter and chip-gain fields from the shared
 		// filter's tables at scaled instance time `time`, clamped to their
 		// stated ranges. The filter's tables use instance time directly: the
@@ -627,17 +599,14 @@ namespace glirps::impl
 			std::uint32_t voice_index = 0;
 		};
 
-		// Evaluates one voice's tables for one control tick: an absent table
+		// Evaluates one voice's tables for one effective tick: an absent table
 		// leaves its parameter at its base value, and a table before its first
 		// segment, on any pass, sets it to that base value; an accumulate table
 		// adds nothing there. `pitch_slide` and
-		// `pulse_width_delta` add their value once per control tick, so their
+		// `pulse_width_delta` add their value once per effective tick, so their
 		// effective rate scales with `tick_multiplier`, and are further clamped
 		// by their authored `*_bounds`; `pulse_width_delta`'s `[0, 1]` clamp
-		// is `clampAccumulate`'s default when no bound narrows it. The `gate`
-		// value is ANDed with the chip-wide/one-shot-derived gate at the
-		// `evaluateTick` call site, so it can only narrow the window that gate
-		// leaves open.
+		// is `clampAccumulate`'s default when no bound narrows it.
 		void
 		advanceVoiceTables(VoiceTableState& state, const VoiceProgram& voice, const VoiceTableClock& clock) noexcept
 		{
@@ -705,7 +674,7 @@ namespace glirps::impl
 		// stays in base ticks, so onset stays on the base grid, and is
 		// 1-indexed: a delay of 0 and a delay of 1 both activate on the first
 		// block `evaluateTick` emits, and the only difference between them is
-		// where the gate opens -- `start`'s base block for 0, the first emitted
+		// where the gate opens: `start`'s base block for 0, the first emitted
 		// (grid-positioned) block for 1. A delay of `N` activates on the first
 		// block of the Nth base tick.
 		[[nodiscard]] constexpr ScaledTime onsetActivationTime(std::uint32_t onset_delay_base_ticks,
@@ -723,10 +692,8 @@ namespace glirps::impl
 		// `offset_cents`: the accumulated pitch slide, the `pitch_offset`
 		// table, and any external pitch. The arpeggio offset is in semitones
 		// from the base pitch, and the variation is already snapped to a
-		// `scale` degree. The semitone sum is computed in 64 bits and clamped
-		// to `[min_semitone, max_semitone]` so a huge `arpeggio` value cannot overflow the
-		// signed 32-bit addition; the result is clamped to Nyquist by the
-		// caller.
+		// `scale` degree. Summed in 64 bits so a huge `arpeggio` cannot
+		// overflow. The result is clamped to Nyquist by the caller.
 		[[nodiscard]] float assembleVoiceFrequency(std::int32_t base_semitone,
 			std::int32_t pitch_variation_semitones,
 			std::int32_t arpeggio_offset,
@@ -741,8 +708,8 @@ namespace glirps::impl
 		}
 
 		// Evaluates one block's gate state: a one-shot program
-		// (`release_subtick` set) holds the gate on for every block whose time
-		// is below its release time, compared exactly in scaled time; a
+		// (`has_release_subtick` true) holds the gate on for every block whose
+		// time is below `release_subtick`, compared exactly in scaled time; a
 		// sustained program takes the consumer's held gate directly.
 		[[nodiscard]] bool
 		computeGateOn(const GateProgram& gate, ScaledTime block_time, std::uint32_t multiplier, bool gate_held) noexcept
@@ -753,8 +720,7 @@ namespace glirps::impl
 		}
 
 		// Writes one voice's evaluated parameters into `voice_block`,
-		// clamping frequency and pulse width to their runtime ranges, so no
-		// block carries an out-of-range value.
+		// clamping frequency and pulse width to their runtime ranges.
 		void writeVoiceBlock(VoiceParameters& voice_block,
 			const VoiceTableState& state,
 			float frequency,
@@ -768,9 +734,7 @@ namespace glirps::impl
 			voice_block.gate_on = gate_on;
 		}
 
-		// Applies the final clamp: every field is clamped to its stated
-		// range after the grit stage and immediately before the block is
-		// returned, so quantization cannot round a value past a bound.
+		// Applied after the grit stage.
 		void clampParameterBlock(ParameterBlock& block, float nyquist, float cutoff_ceiling) noexcept
 		{
 			block.cutoff_hz = std::clamp(block.cutoff_hz, cutoff_hz_floor, cutoff_ceiling);
@@ -792,23 +756,19 @@ namespace glirps::impl
 		// Split from render-side state and the shared `SlotState`.
 		struct ControlSlotState
 		{
-			// Non-owning pointer to the program `start`'s caller SHALL keep
-			// alive until `release`, so `start` neither copies nor allocates
-			// for it.
+			// Non-owning; see `Synth::start`.
 			const SoundProgram* program = nullptr;
 			std::uint32_t reserved_voices = 0;
-			// Blocks emitted so far, counting every block from the first: the
-			// next block's index. Drives every block's time, so table
-			// evaluation and a one-shot program's automatic release.
+			// Blocks emitted so far; sets table timing and one-shot release.
 			std::uint64_t blocks_emitted = 0;
-			// Base control ticks this instance's onset is withheld for so it
+			// Base ticks this instance's onset is withheld for so it
 			// lands on the base control grid, set by `start` and converted into
 			// scaled time by `onsetActivationTime`. Zero for an instance that
 			// gated on at `start`.
 			std::uint32_t onset_delay_base_ticks = 0;
-			// Consumer-held gate state for a sustained program (no
-			// `gate.release_subtick`), set through `Synth::setGate`. Ignored by
-			// a one-shot program.
+			// Consumer-held gate state for a sustained program
+			// (`gate.has_release_subtick` false), set through `Synth::setGate`.
+			// Ignored by a one-shot program.
 			bool gate_held = true;
 			// Seeded per-instance pitch variation, fixed for the instance's
 			// whole life.
@@ -823,12 +783,9 @@ namespace glirps::impl
 			// is a pure function of this seed, the table, the value and the
 			// pass, so no generator state persists between blocks.
 			std::uint64_t table_seed = 0;
-			// The authored chip gain scaled by the flagged `gain_multiplier`
-			// of the most recent `start` or `updateControlParams` call. Used
-			// by `evaluateTick`'s `advanceFilterAndChipGain`, which is also
-			// where the clamp to `[gain_floor, gain_ceiling]` is applied, so
-			// the evaluated blocks carry the same per-instance level the
-			// base block carries.
+			// Authored chip gain times the latest `gain_multiplier`,
+			// unclamped. `evaluateTick` clamps its blocks; `start`'s base
+			// block is not clamped.
 			float chip_output_gain = 1.0f;
 			// External per-tick pitch offset in cents, set through `start`
 			// or `Synth::updateControlParams` and added to the authored base
@@ -846,14 +803,9 @@ namespace glirps::impl
 			bool external_cutoff_active = false;
 		};
 
-		// Render-side per-slot state, disjoint from the control-side set.
-		// Touched by `render` (every field) and, once per slot claim, by
-		// `start`'s initial setup; `current_block` is also written by
-		// `applyBlock`, which runs on the render thread, so
-		// `RenderSlotState` never has a second concurrent writer:
-		// ownership transfers from control to render exactly once, at the
-		// `generation` publish in `SlotState`, and stays with render until
-		// release.
+		// Render-side state. The control side writes it only in construction
+		// and `configure`, with no `render` running, and in `start`, after
+		// `render` has retired the slot and before publishing `generation`.
 		struct RenderSlotState
 		{
 			UniquePtr<BlockRenderer> renderer;
@@ -861,95 +813,44 @@ namespace glirps::impl
 			std::array<float, sub_block_frame_count> staging{};
 		};
 
-		// The one channel shared between control and render, held as
-		// atomics internal to `Synth`. `generation` is written by control
-		// and read by render; `completed_generation` is written by render
-		// and read by control. Both are atomic with plain `store`/`load`
-		// (`memory_order_seq_cst`), which is stronger than the
-		// acquire/release ordering this handoff needs. A slot `release`
-		// frees is not reusable by `start` until `render` itself has
-		// acknowledged it, so `SlotState` splits activation/identity
-		// (`generation`, control-owned) from reuse acknowledgment
-		// (`retired_generation`, render-owned) and from natural completion
-		// (`completed_generation`, render-owned), so each field has one
-		// writing side (`configure`'s resync of `retired_generation` is the one
-		// documented exception) and `start` can tell when `render` has let go
-		// of a slot.
+		// Atomics shared by the control and render sides. `start` reuses a
+		// freed slot only once `retired_generation` equals `generation`,
+		// proving `render` has let go of it. `configure` also writes
+		// `retired_generation`, safe only because `render` is stopped.
 		struct SlotState
 		{
-			// Control-owned, single writer (start/release/configure).
-			// Bumped by exactly one on every claim and every free. Odd =
-			// claimed, even = free. Starts at 0 (even/free): 0 is never issued
-			// as a real handle's generation (`ChipInstanceHandle::isNull()`
-			// reserves 0), so a fresh, never-claimed slot is correctly free by
-			// construction. The first real claim of a fresh slot yields
-			// generation 1.
+			// Written by the control side. Odd = claimed, even = free; 0 is
+			// never issued, as it marks a null handle.
 			std::atomic<std::uint32_t> generation = 0;
 
-			// Render-owned. The most recent generation value `render` has
-			// itself observed as free -- an iteration where it read this
-			// slot's generation as even and touched nothing else. A slot
-			// is reclaimable by `start` only once this equals
-			// `generation`'s current (even) value: proof `render` has
-			// relinquished exactly that release, not a stale earlier one.
+			// Written by `render` and `configure`: the free generation last
+			// acknowledged.
 			std::atomic<std::uint32_t> retired_generation = 0;
 
-			// Render-owned, single writer (render only). Records the
-			// generation whose instance was last observed to reach
-			// natural completion. Starts at 0, never a valid (odd)
-			// claimed generation, so inert until `render` writes a real
-			// value. Latched, per `chip_gate_open` below: once stored for
-			// the current `generation`, it is never cleared -- `render`
-			// only stores it once `chip_gate_open` is false.
+			// Written by `render`: the generation that completed. Stays set
+			// even if the gate reopens.
 			std::atomic<std::uint32_t> completed_generation = 0;
 
-			// Control-owned, single writer (`start`/`evaluateTick`).
-			// Whether the chip-wide gate `computeGateOn` derives from
-			// `release_subtick`/`gate_held` -- before any per-voice `gate`
-			// table value is ANDed in -- was open as of the most recently
-			// evaluated tick. `render` requires this false before it
-			// latches `completed_generation`, because the per-voice `gate`
-			// table is ANDed with this gate and can only narrow it: a per-voice
-			// `gate` table value can hold a voice's envelope momentarily
-			// silent-and-released between retriggers while the chip-wide gate
-			// is still open, which is not the
-			// instance's true completion: `ChipInstance::isComplete()` cannot
-			// distinguish a momentary per-voice gate-off from the chip-wide
-			// gate's own closure, so a gate-table-retriggered sound's render
-			// would otherwise stop after its first retrigger cycle.
-			// Starts true, matching a freshly `start`ed instance's gate.
+			// Written by `start` and `evaluateTick`, read by `render`: the
+			// chip-wide gate before per-voice `gate` tables apply. `render`
+			// latches completion only while it is false, since a `gate` table
+			// can silence every envelope between retriggers.
 			std::atomic<bool> chip_gate_open = true;
-			// Whether any block this instance has emitted carries a gated-on
-			// voice. Written by `start` and `evaluateTick` on the control
-			// side, read by `render`. An instance that never emits one can
-			// never sound, so `render` MAY latch its completion without
-			// waiting for a gate that will never arrive -- which is what a
-			// program whose release time falls on or before its first block
-			// produces.
+			// Written by `start` and `evaluateTick`, read by `render`: whether
+			// any emitted block gates a voice on. If none has, `render` does
+			// not wait for `gate_opened`.
 			std::atomic<bool> gate_emitted = false;
-			// Whether a gated-on block has actually reached the renderer.
-			// Written and read by `render`'s side only (`start`'s own
-			// `applyBaseBlock` included, which runs with no render in
-			// flight). `render` SHALL NOT latch completion before this is
-			// true for an instance that emitted a gate-on, or a one-shot
-			// whose chip-wide gate closes while its gate-on block is emitted
-			// but not yet passed to `applyBlock` would be judged complete and
-			// reclaimed before that block was ever applied, and would never
-			// sound at all.
+			// Written by `start` and `applyBlock`, read by `render`: whether a
+			// gated-on block has reached the renderer. If a gate-on was
+			// emitted, `render` waits for this, so a short one-shot is not
+			// reclaimed before it sounds.
 			std::atomic<bool> gate_opened = false;
 		};
 
 		std::uint32_t sample_rate_hz = 0;
-		// Global grit scale factor, a property of `Synth`, never of a
-		// `SoundProgram`, so the aesthetic can be moved wholesale. Defaults to
-		// 1.0, the profile's own values.
 		float grit_scale = 1.0f;
 		Mixer* mixer = nullptr;
 		SumToMonoMixer default_mixer;
-		// Three parallel arrays, indexed identically by slot index, rather
-		// than one `Slot` struct mixing control-only, render-only, and
-		// shared fields: the split makes the control/render disjointness
-		// a property of the types rather than a convention within one type.
 		std::vector<ControlSlotState, Allocator<ControlSlotState>> control_slots;
 		std::vector<RenderSlotState, Allocator<RenderSlotState>> render_slots;
 		std::vector<SlotState, Allocator<SlotState>> slot_states;
@@ -961,8 +862,6 @@ namespace glirps::impl
 			, slot_states(max_chip_instances, Allocator<SlotState>(allocator))
 			, available_voices(max_voices)
 		{
-			// Constructed at `BlockRenderer`'s defaults, which use
-			// `default_oversampling_factor`.
 			for (RenderSlotState& slot : render_slots)
 				slot.renderer = makeUnique<BlockRenderer>(allocator,
 					default_render_sample_rate_hz,
@@ -999,18 +898,8 @@ namespace glirps::impl
 
 	void Synth::configure(std::uint32_t sample_rate_hz, std::uint32_t oversampling_factor) noexcept
 	{
-		// Discard every instance in flight and report each complete, rather
-		// than migrating it. Advancing the generation makes each discarded
-		// handle expired, so `isComplete` reports true for it. Safe against
-		// the render side unconditionally, not just because
-		// `generation`/`retired_generation`/`completed_generation` are
-		// atomic: the consumer guarantees the callback thread is stopped
-		// before `configure` runs on this path. That same invariant is what
-		// lets this loop also sync `retired_generation` to `generation`
-		// directly, for every slot, not only ones it discards. This is the
-		// one exception to render-owned `retired_generation`, since no
-		// render-side reader can be concurrently active while `configure` is
-		// permitted to run.
+		// Discards every instance. Writing render-owned state here is safe
+		// only because the consumer stops `render` first.
 		for (std::size_t s = 0; s < impl_->control_slots.size(); ++s)
 		{
 			Impl::ControlSlotState& control = impl_->control_slots.at(s);
@@ -1032,12 +921,7 @@ namespace glirps::impl
 
 	void Synth::setGritScale(float scale) noexcept
 	{
-		// Clamp to the [0, 1] range the grit scale interpolates over: 0 is
-		// full float resolution and 1 is the profile's own values. A
-		// non-finite scale is treated as 0, the identity transform, so a
-		// NaN or infinity cannot poison every quantized field of every
-		// block and a value past 1 cannot floor every parameter to its
-		// minimum in silence.
+		// `std::clamp` passes NaN through, so a non-finite scale becomes 0.
 		impl_->grit_scale = std::isfinite(scale) ? std::clamp(scale, 0.0f, 1.0f) : 0.0f;
 	}
 
@@ -1048,19 +932,15 @@ namespace glirps::impl
 		std::uint32_t onset_delay_base_ticks,
 		ControlParams params) noexcept
 	{
-		// `hasInvalidTable` checks the control-tick length of a `step` value
+		// `hasInvalidTable` checks the effective-tick length of a `step` value
 		// against the multiplier, so the multiplier is checked before it.
 		if (hasInvalidVoiceCount(program) || hasOutOfRangeTickMultiplier(program) || hasInvalidTable(program)
 			|| hasOutOfRangeBitDepths(program) || hasInvalidAccumulateBounds(program)
 			|| hasInvalidRoutingSource(program))
 			return std::unexpected(StartError::invalid_program);
 
-		// Find a free chip-instance slot before consulting the voice budget,
-		// so a caller tuning the two ceilings of the voice budget (chip
-		// instances and voices) is told which one is actually exhausted:
-		// with every slot in use the correct answer is
-		// `chip_instances_exhausted`, not `voices_exhausted`, even when the
-		// free voice count is also short.
+		// Slots are checked before voices, so `chip_instances_exhausted` wins
+		// when both are short.
 		std::size_t free_index = impl_->control_slots.size();
 		for (std::size_t s = 0; s < impl_->slot_states.size(); ++s)
 		{
@@ -1069,7 +949,7 @@ namespace glirps::impl
 			// Free requires generation to be even (no live claim) AND
 			// render to have itself acknowledged that release: without the
 			// second check, `render` might still be mid-flight on this
-			// slot's previous occupant.
+			// slot's previous instance.
 			if (candidate_generation % 2 == 0 && candidate.retired_generation.load() == candidate_generation)
 			{
 				free_index = s;
@@ -1086,20 +966,12 @@ namespace glirps::impl
 		Impl::RenderSlotState& render_slot = impl_->render_slots.at(free_index);
 		Impl::SlotState& state = impl_->slot_states.at(free_index);
 
-		// Store a non-owning pointer rather than a copy, which would cost an
-		// allocation per `start`: the caller guarantees `program` outlives
-		// this instance until `release`, `configure`, or `~Synth`. No
-		// allocation happens here.
 		control.program = &program;
 		control.reserved_voices = program.voice_count;
 		impl_->available_voices -= control.reserved_voices;
 		control.blocks_emitted = 0;
 		control.onset_delay_base_ticks = onset_delay_base_ticks;
 		control.gate_held = true;
-		// Reset for a reused slot: a stale `false` from the previous
-		// occupant's own chip-wide gate closure would otherwise make
-		// `render` treat this fresh instance as already eligible to latch
-		// `completed_generation` before `evaluateTick` ever runs for it.
 		state.chip_gate_open.store(true);
 		state.gate_emitted.store(false);
 		state.gate_opened.store(false);
@@ -1110,7 +982,7 @@ namespace glirps::impl
 		// seeded from this, so a given seed always reproduces the same sound.
 		control.table_seed = instance_seed ^ table_random_seed_salt;
 		// Reset for a reused slot: a stale external control from the previous
-		// occupant would otherwise shift this fresh instance's pitch or
+		// instance would otherwise shift this fresh instance's pitch or
 		// cutoff until `updateControlParams` runs again. `params`'s flagged
 		// and finite fields are then applied below, before the base block is
 		// written, so the first evaluated block already carries them.
@@ -1125,13 +997,7 @@ namespace glirps::impl
 			control.external_cutoff_active = true;
 		}
 
-		// Clear every piece of DSP state the renderer may hold from a previous
-		// occupant of this slot, so a reused slot starts from silence exactly
-		// as a freshly-constructed one does: oscillator phase, envelope phase
-		// and level, filter integrators, decimator history, and stale
-		// `ChipVoice::active` flags, so two renders with the same program and
-		// seed are byte-identical. The base parameters set below then
-		// re-establish this instance's own state.
+		// Resets for slot reuse.
 		render_slot.renderer->resetState();
 
 		const float base_frequency = frequencyHertz(program.base_pitch.semitone + control.pitch_variation_semitones,
@@ -1140,16 +1006,6 @@ namespace glirps::impl
 		base_block.filter_modes = program.filter.modes;
 		base_block.cutoff_hz = program.filter.cutoff_hz;
 		base_block.resonance_q = program.filter.resonance_q;
-		// A flagged, finite start-time gain multiplier scales the authored
-		// chip gain; the default of no flag reproduces the authored value
-		// exactly. A multiplier is deliberately not clamped to
-		// `gain_authored_ceiling` here: a consumer's gain multiplier routinely needs to
-		// exceed the authored, nominal-reference value at runtime, the same
-		// way an accumulating table can carry a value no authored field could
-		// hold, which is why the runtime range is the wider one.
-		// `evaluateTick`'s `advanceFilterAndChipGain` still clamps every
-		// block to `gain_ceiling`, a much wider bound that guards only
-		// against a runaway multiplier reaching a voice.
 		control.chip_output_gain = program.output_gain;
 		if ((params.flags & ControlFlag::gain_multiplier) != 0 && std::isfinite(params.gain_multiplier))
 			control.chip_output_gain = program.output_gain * params.gain_multiplier;
@@ -1165,7 +1021,7 @@ namespace glirps::impl
 			base_voice.pulse_width = voice.pulse_width;
 			base_voice.gain = voice.gain;
 			// Every voice gates on at start and renders from its program base
-			// values until a block replaces them -- except a voice whose
+			// values until a block replaces them, except a voice whose
 			// `start_subtick` is nonzero, which instead holds inactive (gated
 			// off) until `evaluateTick` reaches that time, and except an
 			// instance started with a nonzero onset delay, whose every voice
@@ -1184,7 +1040,7 @@ namespace glirps::impl
 			// Applies ring-mod/hard-sync routing before the
 			// instance's first `evaluateTick`, so every render of the instance,
 			// including those from its base values, is routed.
-			// `resetState` above already cleared any previous occupant's
+			// `resetState` above already cleared any previous instance's
 			// routing, so an absent source here correctly stays unrouted.
 			if (voice.has_ring_mod_source)
 				render_slot.renderer->setRingModSource(i, voice.ring_mod_source);
@@ -1268,16 +1124,8 @@ namespace glirps::impl
 		if (!impl_->isLive(instance))
 			return;
 		Impl::ControlSlotState& control = impl_->control_slots.at(instance.getSlot().get());
-		// An unflagged field keeps the instance's current value; `reset_flags`
-		// is the explicit clear operation. A non-finite
-		// flagged value is ignored rather than stored: the clamps downstream
-		// (`clampParameterBlock`, and `advanceFilterAndChipGain`'s output-gain
-		// clamp) are `std::clamp`, which returns a NaN unchanged, so a single
-		// NaN here would turn the whole chip's samples into NaN.
-		//
-		// A field named in both `flags` and `reset_flags` resets: the
-		// `reset_flags` check runs first per field, and the `flags` branch is
-		// an `else`, so a reset always takes precedence over an applied value.
+		// Non-finite values are ignored because the downstream `std::clamp`
+		// calls pass NaN through.
 		if ((params.reset_flags & ControlFlag::pitch_cents) != 0)
 			control.external_pitch_cents = 0.0f;
 		else if ((params.flags & ControlFlag::pitch_cents) != 0 && std::isfinite(params.pitch_cents))
@@ -1355,13 +1203,6 @@ namespace glirps::impl
 
 		auto sub_block_it = sub_block_spans.begin();
 		const auto sub_block_end = sub_block_spans.end();
-		// Published to `slot_state.chip_gate_open` after the loop, so
-		// `render` can require the chip-wide gate to have closed before it
-		// latches `completed_generation`, per the field's own doc comment.
-		// Unconditionally overwritten by `computeGateOn` before first use;
-		// the initial value only matters for `count == 0`, where the store
-		// below is skipped and the atomic is left exactly as `render` last
-		// observed it.
 		bool chip_gate_on = false;
 		for (std::uint32_t t = 0; ParameterBlock& block : blocks.first(count))
 		{
@@ -1396,12 +1237,10 @@ namespace glirps::impl
 			const std::span<VoiceParameters> block_voices(block.voices.data(), block.voice_count);
 			for (std::uint32_t v = 0; v < block.voice_count; ++v)
 			{
-				// `std::span` has no bounds-checked element accessor (`.at()`); `subspan` and
-				// `.front()` together bounds-check the index instead.
 				const VoiceProgram& voice = voices.subspan(v, 1).front();
 				VoiceTableState& state = slot.voice_table_state.at(v);
 
-				// A voice holds inactive -- gated off, no table evaluated --
+				// A voice holds inactive (gated off, no table evaluated)
 				// until the later of its own `start_subtick` and the instance
 				// onset. Neither is silently
 				// dropped. On its first active block its state resets to fresh
@@ -1433,9 +1272,6 @@ namespace glirps::impl
 					state.arpeggio_offset,
 					program.base_pitch.cents,
 					state.pitch_slide_accum_cents + slot.external_pitch_cents + state.pitch_offset_cents);
-				// The per-voice `gate` table value is ANDed with the chip-wide/
-				// one-shot-derived gate, never overriding it; an inactive
-				// (pre-`start_subtick`) voice is gated off regardless of either.
 				const bool gate_on = voice_active && chip_gate_on && state.gate_on;
 
 				writeVoiceBlock(block_voices.subspan(v, 1).front(), state, frequency, nyquist, gate_on);
@@ -1508,7 +1344,7 @@ namespace glirps::impl
 		const std::uint32_t sub_blocks = frames / sub_block_frame_count;
 		// The contract documented on `render` is a whole number of sub-blocks.
 		// The assert above is compiled out in release builds, so a violated
-		// contract must still honour "previous contents are overwritten":
+		// contract must still honor "previous contents are overwritten":
 		// the whole sub-blocks are rendered and the trailing partial sub-block
 		// is zeroed rather than left holding stale data.
 		const std::uint32_t rendered_frames = sub_blocks * sub_block_frame_count;
@@ -1528,7 +1364,7 @@ namespace glirps::impl
 				if (generation % 2 == 0)
 				{
 					// Free: relinquish and acknowledge. This is what lets `start`
-					// reclaim the slot -- it must never touch the renderer below for an
+					// reclaim the slot. It must never touch the renderer below for an
 					// even generation.
 					if (state.retired_generation.load() != generation)
 						state.retired_generation.store(generation);
@@ -1542,19 +1378,6 @@ namespace glirps::impl
 				slot.renderer->applyBlock(slot.current_block);
 				slot.renderer->render(slot.staging);
 				mixer.submitInstance(ChipInstanceHandle(s, generation), slot.staging);
-				// The chip-wide gate must also be closed, not just every
-				// voice's own (per-voice-gate-ANDed) envelope silent: a
-				// per-voice `gate` table value can hold a voice silent and
-				// released between retriggers while the chip-wide gate is
-				// still open, which is not the instance's true completion,
-				// per `chip_gate_open`'s own doc comment.
-				// The third term keeps an instance alive until the gate-on
-				// it emitted has actually been applied. Without it, a
-				// one-shot whose chip-wide gate closes before its own gate-on
-				// block has been passed to `applyBlock` is latched complete,
-				// reclaimed on the next control tick, and never sounds. An instance that emitted
-				// no gate-on at all is exempt: it can never sound, so
-				// waiting for one would leak its slot.
 				if (slot.renderer->isComplete() && !state.chip_gate_open.load()
 					&& (state.gate_opened.load() || !state.gate_emitted.load()))
 					state.completed_generation.store(generation);

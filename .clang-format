@@ -4,7 +4,7 @@ BasedOnStyle: LLVM
 
 # Tab indentation; spaces only for alignment in wrapped lines.
 # AlignWithSpaces (rather than Always) keeps indentation/continuation on tabs
-# but fills alignment gaps -- e.g. the trailing-comment gap -- with literal
+# but fills alignment gaps (e.g. the trailing-comment gap) with literal
 # spaces, so SpacesBeforeTrailingComments below produces exactly two space
 # characters instead of a tab-stop-dependent tab+space mix.
 UseTab:                        AlignWithSpaces
@@ -67,7 +67,7 @@ AlignConsecutiveBitFields:     None
 # to the column of the operator on the left-hand side.
 AlignOperands:                 DontAlign
 # Binary operators break BEFORE the operator (leading-operator style), matching
-# the leading-comma convention used for initialisers and base lists.
+# the leading-comma convention used for initializers and base lists.
 BreakBeforeBinaryOperators:    All
 BreakBeforeTernaryOperators:   true
 

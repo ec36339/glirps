@@ -3,10 +3,8 @@
 /// @file
 /// GLIRPS's public API for BlockRenderer: free functions in namespace
 /// `glirps` that create, configure, drive, and render one chip instance
-/// directly, with no `Synth` pool involved and no mixer seam. The one owning
-/// resource is the opaque `BlockRendererHandle`; same binary-compatibility
-/// design as glirps.hpp -- no RAII type on this surface, a raw handle plus
-/// explicit create/destroy stands in for a constructor/destructor pair.
+/// directly, without a synth or a mixer. Free a `BlockRendererHandle` with
+/// `blockRendererDestroy`.
 
 #include "BlockRendererHandle.hpp"
 #include "Environment.hpp"
@@ -20,7 +18,7 @@
 
 namespace glirps
 {
-	/// Why `blockRendererCreate` did not produce a usable handle. Meaningful
+	/// Why @ref blockRendererCreate did not produce a usable handle. Meaningful
 	/// only when the result is falsy.
 	enum class BlockRendererCreateError : std::uint8_t
 	{
@@ -28,7 +26,7 @@ namespace glirps
 		allocation_failure,
 	};
 
-	/// The outcome of `blockRendererCreate`, returned by value in place of a
+	/// The outcome of @ref blockRendererCreate, returned by value in place of a
 	/// null handle so a failure carries its reason. On success `renderer` is a
 	/// valid handle; on failure `renderer` is null. Trivially copyable and
 	/// standard-layout.
@@ -39,8 +37,7 @@ namespace glirps
 		/// The reason for failure. Meaningful only when the result is falsy.
 		BlockRendererCreateError error;
 
-		/// Reports whether creation succeeded, derived from the handle so no
-		/// success value is added to `BlockRendererCreateError`.
+		/// Returns true on success.
 		[[nodiscard]] explicit operator bool() const noexcept { return renderer != nullptr; }
 	};
 
@@ -49,73 +46,64 @@ namespace glirps
 	///
 	/// **Threading.** GLIRPS creates no threads and holds no locks. A
 	/// `BlockRendererHandle` has no synchronization of its own and belongs to one
-	/// thread at a time: no two calls on the same handle SHALL overlap, and
+	/// thread at a time: no two calls on the same handle must overlap, and
 	/// handing a handle to another thread needs a happens-before relation that
 	/// the consumer provides. Different handles are independent.
 	///
 	/// A consumer rendering in an audio thread calls every function on a handle
-	/// from that thread, except setup done before the audio thread starts using
-	/// the handle, such as `blockRendererCreate` and `blockRendererConfigureVoice`,
-	/// and `blockRendererDestroy` after it has stopped. To change parameters from
-	/// another thread, the consumer passes the values to the audio thread, for
-	/// example as `ParameterBlock` values for `blockRendererApplyBlock`, instead of
+	/// from that thread. The exceptions are calls made while that thread is not
+	/// using the handle: setup such as @ref blockRendererCreate and @ref
+	/// blockRendererConfigureVoice, @ref blockRendererReconfigure, and @ref
+	/// blockRendererDestroy. To change parameters from another thread, the
+	/// consumer passes the values to the audio thread, for example as
+	/// `ParameterBlock` values for @ref blockRendererApplyBlock, instead of
 	/// calling the setters directly.
 	///
 	/// **Voices.** A block renderer holds `max_voices_per_instance` voices, numbered from 0. Every `voice_index`
-	/// SHALL be below that; an out-of-range index terminates the program.
+	/// must be below that; an out-of-range index terminates the program.
 	///
-	/// **Blocking.** No function waits on another thread. `blockRendererCreate`,
-	/// `blockRendererDestroy`, and `blockRendererReconfigure` may block in the
+	/// **Blocking.** No function waits on another thread. @ref blockRendererCreate,
+	/// @ref blockRendererDestroy, and @ref blockRendererReconfigure may block in the
 	/// memory allocator or in the consumer's allocator callbacks, so a
 	/// real-time consumer calls them only while the audio thread is not
-	/// rendering. Any function MAY call the consumer's log callback; see
+	/// rendering. Any function may call the consumer's log callback; see
 	/// `LogCallbacks`. Computation and atomic operations do not count as blocking.
 
 	/// Creates a renderer at `sample_rate_hz`, deriving every rate-dependent
-	/// constant once. Fails only on allocation failure; the surface does not
-	/// throw.
-	///
-	/// The renderer allocates through `environment->allocator` and reports to
-	/// `environment->logger`, both for its whole life. A null `environment`
-	/// selects the default C++ allocation and no logging. The environment is
-	/// copied, so it need not outlive this call, but its callbacks and their
-	/// contexts SHALL stay valid until @ref blockRendererDestroy returns.
+	/// constant once. Fails only on allocation failure.
 	/// @param sample_rate_hz The output sample rate, in hertz.
 	/// @param oversampling_factor The internal oversampling factor, a positive integer. Oscillators, envelopes, and
 	///   filter run at this multiple of `sample_rate_hz`, so CPU cost grows with it.
-	/// @param environment Allocator and log callbacks, or null for none.
+	/// @param environment Null selects default allocation and no logging. See @ref Environment.
 	/// @return The created handle, or a falsy result stating why creation failed.
-	/// @threading The allocator and log callbacks run on the calling thread during this call.
 	/// @ingroup blockRenderer
 	[[nodiscard]] BlockRendererCreateResult blockRendererCreate(std::uint32_t sample_rate_hz,
 		std::uint32_t oversampling_factor,
 		const Environment* environment = nullptr) noexcept;
 
-	/// Destroys a renderer. Null-safe. The allocator and log callbacks given to @ref blockRendererCreate are not used
-	/// after this call returns.
+	/// Destroys a renderer. Null-safe.
 	/// @param renderer The renderer to destroy; may be null.
-	/// @threading The allocator and log callbacks run on the calling thread during this call.
 	/// @ingroup blockRenderer
 	void blockRendererDestroy(BlockRendererHandle renderer) noexcept;
 
 	/// Recomputes every rate-dependent constant for `sample_rate_hz` and
-	/// `oversampling_factor`.
+	/// `oversampling_factor`. It discards every voice's frequency, pulse width,
+	/// envelope settings, and gate, and clears filter and decimator history. Set
+	/// the envelope, frequency, and pulse width again, then turn the gate on.
 	/// @param renderer The renderer to reconfigure.
 	/// @param sample_rate_hz The output sample rate, in hertz.
 	/// @param oversampling_factor The internal oversampling factor, a positive integer. Oscillators, envelopes, and
 	///   filter run at this multiple of `sample_rate_hz`, so CPU cost grows with it.
-	/// @threading An `oversampling_factor` above the one given to @ref blockRendererCreate makes the renderer
-	///   allocate larger
-	///   buffers through the allocator callbacks of its environment, and a null return from them then terminates
-	///   the program.
+	/// @warning An oversampling factor above the one given to @ref blockRendererCreate can allocate; if allocation
+	///   fails, the program terminates.
 	/// @ingroup blockRenderer
 	void blockRendererReconfigure(BlockRendererHandle renderer,
 		std::uint32_t sample_rate_hz,
 		std::uint32_t oversampling_factor) noexcept;
 
-	/// Returns the renderer to a cleared state: every voice
-	/// inactive, oscillator and envelope zeroed, filter and decimator history
-	/// cleared.
+	/// Deactivates every voice, turns every gate off, and clears routing and
+	/// signal history. The filter responses and saturation are kept. Set up
+	/// voices, envelopes, cutoff, resonance, and output gain again before reuse.
 	/// @param renderer The renderer to reset.
 	/// @ingroup blockRenderer
 	void blockRendererResetState(BlockRendererHandle renderer) noexcept;
@@ -130,7 +118,8 @@ namespace glirps
 	blockRendererSeedVoiceNoise(BlockRendererHandle renderer, std::uint32_t voice_index, std::uint32_t seed) noexcept;
 
 	/// Configures one voice directly: waveform, frequency, pulse width, gain, and noise seed. It also makes the voice
-	/// take part in rendering. The envelope still needs a gate before the voice is heard.
+	/// take part in rendering. On a new renderer the gate is already on; after a reset or reconfiguration, turn it on
+	/// with @ref blockRendererSetGate.
 	/// @param renderer The renderer owning the voice.
 	/// @param voice_index The voice to configure.
 	/// @param waveform The voice's waveform.
@@ -150,7 +139,7 @@ namespace glirps
 	/// Selects one voice's envelope rate indices and sustain level. Each index, 0 to 15, selects one of 16 presets.
 	/// Attack runs from 2 ms at index 0 to 8 s at index 15, and the decay and release times of an index are three
 	/// times its attack time. An index of 16 or more is ignored and leaves the envelope unchanged.
-	/// `blockRendererSetVoiceEnvelopeSeconds` sets the times directly.
+	/// @ref blockRendererSetVoiceEnvelopeSeconds sets the times directly.
 	/// @param renderer The renderer owning the voice.
 	/// @param voice_index The voice to configure.
 	/// @param attack_index Attack rate index, 0 to 15.
@@ -166,7 +155,7 @@ namespace glirps
 		float sustain_level) noexcept;
 
 	/// Selects one voice's envelope from durations in seconds and a sustain
-	/// level, converted to per-sample rates once.
+	/// level.
 	/// @param renderer The renderer owning the voice.
 	/// @param voice_index The voice to configure.
 	/// @param attack_seconds Attack duration, in seconds.
@@ -234,9 +223,8 @@ namespace glirps
 	/// @ingroup blockRenderer
 	void blockRendererSetFilterCutoff(BlockRendererHandle renderer, float cutoff_hz) noexcept;
 
-	/// Sets the shared filter's saturation. Not changed by
-	/// `blockRendererApplyBlock` or `blockRendererApplyBaseBlock`:
-	/// `ParameterBlock` carries no saturation field.
+	/// Sets the shared filter's saturation. `ParameterBlock` carries no
+	/// saturation field, so applying a block does not change it.
 	/// @param renderer The renderer to update.
 	/// @param saturation The new saturation drive in `[0, 1]`.
 	/// @ingroup blockRenderer
@@ -256,7 +244,7 @@ namespace glirps
 	[[nodiscard]] std::uint32_t blockRendererGetDecimatorGroupDelayInFrames(BlockRendererHandle renderer) noexcept;
 
 	/// Installs `block`'s parameters on the instance: waveform, frequency,
-	/// pulse width, filter modes, and gate step immediately; cutoff,
+	/// pulse width, filter modes, and gate change immediately; cutoff,
 	/// resonance, per-voice gain, and output gain ramp to their new values
 	/// over one sub-block.
 	/// @param renderer The renderer to update.
@@ -271,8 +259,8 @@ namespace glirps
 	/// @ingroup blockRenderer
 	void blockRendererApplyBaseBlock(BlockRendererHandle renderer, const ParameterBlock& block) noexcept;
 
-	/// Renders `output.size()` frames of mono, which SHALL be a whole number of sub-blocks. Allocates nothing, takes
-	/// no lock, issues no syscall. Unlike `synthRender`, it does not change the floating-point mode; a consumer that
+	/// Renders `output.size()` frames of mono, which must be a whole number of sub-blocks. Allocates nothing, takes
+	/// no lock, issues no syscall. Unlike @ref synthRender, it does not change the floating-point mode; a consumer that
 	/// wants flush-to-zero sets it on the render thread.
 	/// @param renderer The renderer to run.
 	/// @param output Caller-owned mono buffer to fill.

@@ -5,19 +5,8 @@
 
 namespace glirps::impl
 {
-	// Deterministic per-chip-instance generator for seeded pitch variation
-	// (every LFSR and every variation RNG is seeded per chip instance, so
-	// a render is reproducible from its seed) and for random table value
-	// draws, one short-lived generator per draw. A splitmix64 step: a full
-	// 64-bit permutation with a 2^64 period and no known statistical
-	// weakness, so both a single draw per instance and the one draw per
-	// freshly seeded random table value are equally well supported;
-	// nothing about splitmix64's construction favors a first draw over a
-	// later one in the same sequence.
-	//
-	// Satisfies `UniformRandomBitGenerator` (`operator()`, `result_type`,
-	// `min()`, `max()`), so it plugs directly into
-	// `std::uniform_real_distribution`/`std::uniform_int_distribution`.
+	// Deterministic splitmix64 generator for seeded pitch variation and random
+	// table values. Satisfies `UniformRandomBitGenerator`.
 	class VariationRng
 	{
 	public:

@@ -1,8 +1,8 @@
 name: CI
 
-# An edit of a pull request's title or description gets a text-only run: it
-# builds nothing, checks the current title, and takes over the build results of
-# the same commit. A change of the target branch is not such an edit: it builds.
+# Editing only a pull request's title or description starts a text-only run: it
+# builds nothing, reruns the repository checks, and reuses the build results of
+# the same commit. Changing the target branch builds.
 # `check-earlier-builds.sh` tells the runs apart by this name.
 run-name: "${{ github.event.action == 'edited' && !github.event.changes.base && format('Text-only run: {0}', github.event.pull_request.title) || '' }}"
 
@@ -48,7 +48,6 @@ jobs:
       - name: Check public headers as C++20
         run: cmake --build --preset linux-debug --target all_verify_interface_header_sets
 
-  # Release build and the only test run.
   release:
     name: Build and Test Release
     if: github.event.action != 'edited' || github.event.changes.base
@@ -362,8 +361,8 @@ jobs:
           done
           exit $status
 
-  # Publishes the site of a push to `develop` that passed. A skipped job earlier
-  # in the chain would skip this one without the status function in `if`.
+  # Publishes the site of a push to `develop` that passed. `!cancelled()` stops a
+  # skipped upstream job from skipping this one.
   deploy:
     name: Publish documentation
     needs: ci-result

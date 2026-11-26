@@ -27,12 +27,11 @@ namespace glirps::shims
 	{
 		static_assert(N > 0, "Array requires at least one element.");
 
-		/// The stored values. Public so that the type stays an aggregate.
+		/// The stored values.
 		T elements[N];
 
-		/// Creates an `Array` holding a copy of each value of `source`.
 		/// @param source The values to copy.
-		/// @return An `Array` with the same values.
+		/// @return An `Array` holding a copy of each value of `source`.
 		[[nodiscard]] static constexpr Array fromStdArray(const std::array<T, N>& source)
 		{
 			Array result{};
@@ -40,7 +39,6 @@ namespace glirps::shims
 			return result;
 		}
 
-		/// Returns a `std::array` holding a copy of each value.
 		/// @return A `std::array` holding a copy of each value.
 		[[nodiscard]] constexpr explicit operator std::array<T, N>() const
 		{
@@ -49,19 +47,16 @@ namespace glirps::shims
 			return result;
 		}
 
-		/// Returns a pointer to the first value.
 		/// @return Pointer to the first value.
 		[[nodiscard]] constexpr T* data() noexcept { return elements; }
 
-		/// Returns a pointer to the first value.
 		/// @return Pointer to the first value.
 		[[nodiscard]] constexpr const T* data() const noexcept { return elements; }
 
-		/// Returns the number of values, `N`.
-		/// @return The number of values.
+		/// @return The number of values, `N`.
 		[[nodiscard]] constexpr std::size_t size() const noexcept { return N; }
 
-		/// Returns the value at `index`. `index` SHALL be less than `N`; debug
+		/// Returns the value at `index`. `index` must be less than `N`; debug
 		/// builds assert it.
 		/// @param index Position of the value.
 		/// @return Reference to the value at `index`.
@@ -71,7 +66,7 @@ namespace glirps::shims
 			return elements[index];
 		}
 
-		/// Returns the value at `index`. `index` SHALL be less than `N`; debug
+		/// Returns the value at `index`. `index` must be less than `N`; debug
 		/// builds assert it.
 		/// @param index Position of the value.
 		/// @return Reference to the value at `index`.
@@ -107,35 +102,27 @@ namespace glirps::shims
 			return elements[index];
 		}
 
-		/// Returns the first value.
 		/// @return Reference to the first value.
 		[[nodiscard]] constexpr T& front() noexcept { return elements[0]; }
 
-		/// Returns the first value.
 		/// @return Reference to the first value.
 		[[nodiscard]] constexpr const T& front() const noexcept { return elements[0]; }
 
-		/// Returns the last value.
 		/// @return Reference to the last value.
 		[[nodiscard]] constexpr T& back() noexcept { return elements[N - 1]; }
 
-		/// Returns the last value.
 		/// @return Reference to the last value.
 		[[nodiscard]] constexpr const T& back() const noexcept { return elements[N - 1]; }
 
-		/// Returns a pointer to the first value.
 		/// @return Pointer to the first value.
 		[[nodiscard]] constexpr T* begin() noexcept { return elements; }
 
-		/// Returns a pointer to the first value.
 		/// @return Pointer to the first value.
 		[[nodiscard]] constexpr const T* begin() const noexcept { return elements; }
 
-		/// Returns a pointer one past the last value.
 		/// @return Pointer one past the last value.
 		[[nodiscard]] constexpr T* end() noexcept { return elements + N; }
 
-		/// Returns a pointer one past the last value.
 		/// @return Pointer one past the last value.
 		[[nodiscard]] constexpr const T* end() const noexcept { return elements + N; }
 

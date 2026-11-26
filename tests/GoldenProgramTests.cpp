@@ -17,7 +17,7 @@ namespace
 }
 
 // Guards the golden set itself: a case whose feature has no audible effect, or
-// that renders silence, would pin nothing. Platform-independent.
+// that renders silence, would test nothing. Platform-independent.
 TEST(GoldenProgramTests, Render_AllPrograms_AreAudibleAndDistinct)
 {
 	// ARRANGE

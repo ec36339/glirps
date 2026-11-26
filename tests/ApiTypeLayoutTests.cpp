@@ -5,7 +5,7 @@
 #include <type_traits>
 
 // Layout checks for the types that cross the free-function boundary by value:
-// each SHALL stay standard-layout and trivially copyable.
+// each must stay standard-layout and trivially copyable.
 static_assert(std::is_standard_layout_v<glirps::ControlParams>);
 static_assert(std::is_trivially_copyable_v<glirps::ControlParams>);
 static_assert(std::is_standard_layout_v<glirps::MixerCallbacks>);

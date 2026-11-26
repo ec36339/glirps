@@ -14,13 +14,7 @@
 
 namespace glirps::test_support
 {
-	// Owns every backing allocation a test-built `SoundProgram`'s non-owning
-	// members point into. Non-copyable, but movable: `program` points only into
-	// the heap buffers its `std::vector`/`std::deque` members own, never into
-	// this object's own inline storage, and moving those containers transfers
-	// their buffers rather than reallocating, so a defaulted move leaves every
-	// pointer `program` (transitively) holds valid. This lets a test build one
-	// in a local helper and return it by value.
+	// Owns the data a test program points to.
 	class TestProgramStorage
 	{
 	public:
@@ -39,9 +33,7 @@ namespace glirps::test_support
 		// Backing storage for `program.voices`.
 		std::vector<VoiceProgram> voice_storage;
 
-		// Per-table backing storage, one deque entry per built table.
-		// `std::deque`, not `std::vector`: appending a later table's storage
-		// SHALL NOT move or invalidate an earlier table's.
+		// Per-table backing storage.
 		std::deque<std::vector<Segment>> segment_storage;
 		std::deque<std::vector<Waveform>> waveform_value_storage;
 		std::deque<std::vector<ValueRange<std::int32_t>>> int_value_storage;
@@ -97,7 +89,7 @@ namespace glirps::test_support
 	}
 
 	// Builds the segment-table equivalent of a row table: `rows` as one
-	// `step` segment holding each row for `ticks_per_value` control ticks at
+	// `step` segment holding each row for `ticks_per_value` effective ticks at
 	// `tick_multiplier`, looping back to row `loop`. Looping to the last row
 	// holds it.
 	template<typename Row>
@@ -194,12 +186,8 @@ namespace glirps::test_support
 		setScale(storage, storage.program, std::move(scale));
 	}
 
-	// Sets `program.voices`/`voice_count` from `voices`, copying them into
-	// `storage`. Called last, after every voice's own tables are already
-	// built into `storage` and after `setScale`, if used: appending to
-	// `storage.voice_storage` is the last write this support type expects
-	// per test, so `.data()` stays valid for the rest of the test's life.
-	// `program` need not be `storage.program` itself; see `setScale`.
+	// Copies `voices` into `storage` and points `program` at them. See
+	// `setScale` for `program`.
 	inline void setVoices(TestProgramStorage& storage, SoundProgram& program, std::vector<VoiceProgram> voices)
 	{
 		storage.voice_storage = std::move(voices);
@@ -213,14 +201,8 @@ namespace glirps::test_support
 		setVoices(storage, storage.program, std::move(voices));
 	}
 
-	// Sets `program.voices`/`voice_count` to `count` default-constructed
-	// voices. A test that needs specific per-voice fields afterward SHALL
-	// mutate them through `storage.voice_storage` directly (`program.voices`
-	// is a read-only, non-owning view), and MAY do so freely without calling
-	// this again: mutating an existing element in place does not move
-	// `storage.voice_storage`'s backing buffer, only resizing or reassigning
-	// it does. `program` need not be `storage.program` itself; see
-	// `setScale`.
+	// Points `program` at `count` default voices in `storage`; edit them
+	// through `storage.voice_storage`. See `setScale` for `program`.
 	inline void resizeVoices(TestProgramStorage& storage, SoundProgram& program, std::size_t count)
 	{
 		storage.voice_storage.assign(count, VoiceProgram{});

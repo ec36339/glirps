@@ -69,10 +69,6 @@ namespace glirps::impl
 		impl_->chip.setVoiceEnvelope(voice_index, attack_index, decay_index, release_index, sustain_level);
 	}
 
-	// Selects one voice's envelope from durations in seconds and a sustain
-	// level. Used by `Synth::start` to configure the instance's envelopes from
-	// the program once: authored seconds become per-sample rates once at
-	// `start`, never on the render path.
 	void BlockRenderer::setVoiceEnvelopeSeconds(std::uint32_t voice_index,
 		float attack_seconds,
 		float decay_seconds,

@@ -59,16 +59,16 @@ namespace glirps
 		= std::conditional_t<std::is_arithmetic_v<Row> && !std::is_same_v<Row, bool>, ValueRange<Row>, Row>;
 
 	/// A list of timed segments over one shared value pool, with an optional
-	/// loop. `Row` is the row type of one parameter class. Non-owning:
+	/// loop. `Row` is the type of the parameter the table drives. Non-owning:
 	/// `segments` and `values` point into storage the caller allocates and keeps
 	/// alive for at least as long as the `SoundProgram` referencing this table.
-	/// The caller MAY place the segments and values of every table of a program
+	/// The caller may place the segments and values of every table of a program
 	/// in one contiguous block each.
 	template<typename Row>
 	struct Table
 	{
 		/// Sorted by `start_subtick`, non-overlapping. Non-owning; sized
-		/// `segment_count`. SHALL be non-empty.
+		/// `segment_count`. Must be non-empty.
 		const Segment* segments = nullptr;
 		/// Number of entries `segments` points to.
 		std::uint32_t segment_count = 0;
@@ -85,7 +85,7 @@ namespace glirps
 		std::uint32_t loop_start_subtick = 0;
 	};
 
-	/// Authored bounds narrowing an accumulate-type table's runtime clamp.
+	/// Optional bounds on the accumulated value.
 	/// `has_min`/`has_max` false leaves the parameter unbounded (`pitch_slide`)
 	/// or at its full runtime range (`pulse_width_delta`).
 	struct AccumulateBounds

@@ -11,8 +11,7 @@
 #include <vector>
 
 // Headless integration tests for `synthUpdateControlParams` in
-// `glirps/glirps.hpp`. GLIRPS is CPU-only synthesis producing a sample buffer,
-// so no GPU or audio device is used.
+// `glirps/glirps.hpp`.
 using glirps::test_support::makeSustainedProgram;
 using glirps::test_support::renderOneBaseTick;
 using glirps::test_support::test_oversampling_factor;

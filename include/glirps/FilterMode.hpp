@@ -18,9 +18,7 @@ namespace glirps
 		notch,
 	};
 
-	/// The responses the shared filter emits, summed. The four are selectable
-	/// and combinable, so a set rather than a single value crosses the
-	/// boundary. Trivially copyable, so a parameter block carries it by value.
+	/// The responses the shared filter emits, summed.
 	/// All four false is a defined state: the filter passes its input through
 	/// unfiltered.
 	struct FilterModeSet

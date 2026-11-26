@@ -90,7 +90,7 @@ TEST(GritStageTests, QuantizationStep_ScaleOneHalf_LiesStrictlyBetweenScaleZeroA
 	using glirps::impl::detail::quantizationStep;
 
 	// ARRANGE: an arbitrary bit depth and range, standing in for every
-	// parameter class -- the formula is the same for each.
+	// parameter class: the formula is the same for each.
 	constexpr std::uint32_t bits = 11;
 	constexpr float range = 100.0f;
 

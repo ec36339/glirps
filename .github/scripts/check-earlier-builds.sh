@@ -37,8 +37,8 @@ for ((poll = 1; poll <= max_polls; poll++)); do
 		fi
 	else
 		read -r run_id run_status <<<"$run"
-		# The whole run has to end, its own gate included, so that the result
-		# of this run is the later one.
+		# Wait for the whole run, including its `CI Result` job, so that this
+		# run's `CI Result` reports later.
 		if [[ $run_status == completed ]]; then
 			break
 		fi

@@ -30,12 +30,12 @@ namespace
 	// One base tick, in subticks.
 	constexpr std::uint32_t base_tick = glirps::subticks_per_base_tick;
 	// The base voice gain of `makeProgram`, distinct from every table value
-	// these tests author, so a block at the base value is recognisable.
+	// these tests author, so a block at the base value is recognizable.
 	constexpr float base_gain = 0.5f;
 	constexpr float tolerance = 1.0e-5f;
 
 	// One sustained triangle voice at C-3 with the base gain above and the
-	// given tick multiplier. `storage` SHALL outlive the returned program.
+	// given tick multiplier.
 	glirps::SoundProgram& makeProgram(TestProgramStorage& storage, std::uint32_t tick_multiplier = 1)
 	{
 		storage.program.base_pitch = glirps::Pitch{.semitone = 36, .cents = 0};
@@ -166,7 +166,7 @@ TEST(SynthSegmentTableTests, EvaluateTick_CatmullRomSegment_FollowsSpline)
 	// ACT
 	const auto gains = run(program, 5, readGain);
 
-	// ASSERT: at the half-interval points the outer neighbour repeats the
+	// ASSERT: at the half-interval points the outer neighbor repeats the
 	// segment's own edge value, giving 0.5625 on both sides of the peak.
 	ASSERT_EQ(gains.size(), 5U);
 	EXPECT_THAT(gains,
@@ -429,7 +429,7 @@ TEST(SynthSegmentTableTests, EvaluateTick_PulseWidth_ReplacesBase)
 
 TEST(SynthSegmentTableTests, EvaluateTick_PitchSlide_AccumulatesOncePerControlTick)
 {
-	// ARRANGE: a multiplier of 2 emits two control ticks per base tick.
+	// ARRANGE: a multiplier of 2 emits two effective ticks per base tick.
 	TestProgramStorage storage;
 	const auto& program = makeProgram(storage, 2);
 	editVoiceTables(storage).has_pitch_slide = true;
@@ -586,8 +586,8 @@ TEST(SynthSegmentTableTests, Start_MalformedTables_RejectedAsInvalidProgram)
 
 TEST(SynthSegmentTableTests, Start_OneControlTickInterval_Accepted)
 {
-	// ARRANGE: half a base tick is one control tick at a multiplier of 2,
-	// and a one-value segment may be shorter than a control tick.
+	// ARRANGE: half a base tick is one effective tick at a multiplier of 2,
+	// and a one-value segment may be shorter than an effective tick.
 	TestProgramStorage two_values_storage;
 	const auto& two_values = makeProgram(two_values_storage, 2);
 	editVoiceTables(two_values_storage).has_gain = true;

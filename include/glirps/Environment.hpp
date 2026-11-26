@@ -4,10 +4,6 @@
 /// The consumer-supplied environment of a synth or a block renderer: memory
 /// allocation callbacks and a log callback. Both are optional and C-style (a
 /// function pointer plus a `void*` context), like `MixerCallbacks`.
-///
-/// The environment is passed to `synthCreate` or `blockRendererCreate` and
-/// copied into the created object. It is per object, never global: two objects
-/// MAY use different environments in one process.
 
 #include <cstddef>
 #include <cstdint>
@@ -27,22 +23,14 @@ namespace glirps
 	};
 
 	/// Replaces the default C++ allocation of every heap allocation GLIRPS makes
-	/// for one object. Both function pointers SHALL be non-null to take effect;
+	/// for one object. Both function pointers must be non-null to take effect;
 	/// if either is null, the default allocation is used (a debug assertion
 	/// flags the partial case). Trivially copyable and standard-layout.
 	///
-	/// The callbacks run synchronously, only during a call of a GLIRPS function,
-	/// on the thread that made the call. GLIRPS does not synchronize them: two
-	/// threads that call GLIRPS functions MAY run them concurrently, and the
-	/// consumer provides any synchronization the callbacks need. GLIRPS calls
-	/// them from `synthCreate`, `blockRendererCreate`, `synthDestroy`, and
-	/// `blockRendererDestroy`, and from `synthConfigure` and
-	/// `blockRendererReconfigure` only when the oversampling factor grows beyond
-	/// the one the object was created with (for a synth,
-	/// `default_oversampling_factor`). A null return then terminates the program,
-	/// because those functions cannot report failure.
+	/// Called synchronously on the thread making the GLIRPS call. Calls from
+	/// different threads may run concurrently; synchronize as needed.
 	///
-	/// The callbacks and `context` SHALL stay valid from the create call until the
+	/// The callbacks and `context` must stay valid from the create call until the
 	/// matching destroy call returns, because the destroy call deallocates through
 	/// them.
 	struct AllocatorCallbacks final
@@ -64,17 +52,16 @@ namespace glirps
 	/// A message is formatted only if its severity is at least `min_severity`, so
 	/// a disabled message costs only a comparison.
 	///
-	/// Any GLIRPS function that takes a handle of an object created with an
-	/// environment MAY call `log`, as MAY the create function itself. `log` runs
-	/// synchronously, only during such a call, on the thread that made the call.
-	/// GLIRPS never calls it at any other time, from another thread, or from a
-	/// thread of its own. GLIRPS does not synchronize it: two threads that call
-	/// GLIRPS functions MAY run it concurrently, and the consumer provides any
-	/// synchronization it needs. A consumer that calls GLIRPS from a real-time
-	/// thread supplies a `log` that is real-time safe at the severities it
-	/// enables.
+	/// Any GLIRPS function except `synthRender` that takes a handle of an object
+	/// created with an environment may call `log`, as may the create function
+	/// itself.
 	///
-	/// `log` and `context` SHALL stay valid from the create call until the
+	/// Called synchronously on the thread making the GLIRPS call. Calls from
+	/// different threads may run concurrently; synchronize as needed. A consumer
+	/// that calls GLIRPS from a real-time thread supplies a `log` that is
+	/// real-time safe at the severities it enables.
+	///
+	/// `log` and `context` must stay valid from the create call until the
 	/// matching destroy call returns.
 	struct LogCallbacks final
 	{
@@ -82,7 +69,7 @@ namespace glirps
 		void* context = nullptr;
 		/// Receives one message. `message` is zero-terminated, `length` is the
 		/// number of characters before the terminator, and `message` is valid
-		/// only for the duration of the call. The text of a message MAY change
+		/// only for the duration of the call. The text of a message may change
 		/// between versions.
 		void (*log)(void* context, LogSeverity severity, const char* message, std::size_t length) noexcept = nullptr;
 		/// The lowest severity that is reported. Messages below it are not formatted.
@@ -91,7 +78,8 @@ namespace glirps
 
 	/// The allocator and logging configuration of one synth or block renderer.
 	/// Both members are optional; a default-constructed value selects the default
-	/// C++ allocation and no logging. Trivially copyable and standard-layout.
+	/// C++ allocation and no logging. Copied into the created object; each object
+	/// has its own. Trivially copyable and standard-layout.
 	struct Environment final
 	{
 		/// Memory allocation callbacks, or none for the default allocation.

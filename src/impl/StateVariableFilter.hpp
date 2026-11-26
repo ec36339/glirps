@@ -30,11 +30,7 @@ namespace glirps::impl
 
 		// Sets cutoff, resonance, mode set, and saturation amount. The
 		// prewarped coefficient is derived here; the render path reuses it.
-		// Modes and saturation are stored unconditionally (they are cheap
-		// assigns), but the `std::tan` and two divides that derive the
-		// coefficients are skipped when neither cutoff nor resonance moved:
-		// in steady state the ramps are zero and the values are unchanged, so
-		// recomputing them on every output sample is pure waste.
+		// Coefficients are recomputed only when cutoff or resonance changes.
 		void setParameters(float cutoff_hz, float resonance_q, FilterModeSet modes, float saturation) noexcept
 		{
 			modes_ = modes;
@@ -52,10 +48,7 @@ namespace glirps::impl
 			coefficient_a3_ = warped_cutoff * coefficient_a2_;
 		}
 
-		// Returns the filter to a cleared state: both integrators
-		// zero, every response coefficient clear, no response selected. Used when a chip slot is
-		// handed to a new instance so the previous occupant's filter state
-		// cannot leak a thump into the new sound's onset.
+		// Resets for slot reuse.
 		void reset() noexcept
 		{
 			state_ic1_ = 0.0f;
@@ -67,7 +60,7 @@ namespace glirps::impl
 			coefficient_a2_ = 0.0f;
 			coefficient_a3_ = 0.0f;
 			// Force the next `setParameters` to recompute even for the same
-			// cutoff and resonance the previous occupant left behind.
+			// cutoff and resonance the previous instance left behind.
 			previous_cutoff_hz_ = -1.0f;
 			previous_resonance_q_ = -1.0f;
 		}
@@ -129,7 +122,7 @@ namespace glirps::impl
 		float state_ic1_ = 0.0f;
 		float state_ic2_ = 0.0f;
 		// The cutoff and resonance `setParameters` last derived coefficients
-		// for, so it can skip the derivation when neither moved. Initialised
+		// for, so it can skip the derivation when neither moved. Initialized
 		// to -1 so the first call always recomputes (cutoff and resonance are
 		// never negative).
 		float previous_cutoff_hz_ = -1.0f;
