@@ -1,0 +1,2 @@
+# The fingerprint of the public LLVM signing key, not a secret.
+08052d9777e8b31a1f9d04dc5dae425591f6552d:.github/actions/setup-clang/action.yml:generic-api-key:11

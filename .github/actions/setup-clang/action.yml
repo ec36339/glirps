@@ -6,10 +6,30 @@ runs:
   steps:
     - name: Install Clang 22, libc++, and Ninja
       shell: bash
+      env:
+        # The fingerprint of the key that signs the packages of apt.llvm.org.
+        LLVM_KEY_FINGERPRINT: 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
       run: |
-        curl --proto '=https' --tlsv1.2 -sSf -o llvm.sh https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 22
+        set -euo pipefail
+        work=$(mktemp -d)
+        curl --proto '=https' --tlsv1.2 -sSf -o "$work/key.asc" \
+          https://apt.llvm.org/llvm-snapshot.gpg.key
+
+        # Only the pinned key is exported, so any other key in the download is
+        # not trusted. Without it, the export is empty.
+        gpg --homedir "$work" --batch --import "$work/key.asc"
+        gpg --homedir "$work" --batch --export "$LLVM_KEY_FINGERPRINT" >"$work/llvm.gpg"
+        if [[ ! -s $work/llvm.gpg ]]; then
+          echo "::error::The LLVM key does not have the pinned fingerprint."
+          exit 1
+        fi
+        sudo install -D -m 644 "$work/llvm.gpg" /etc/apt/keyrings/llvm.gpg
+
+        # `signed-by` limits the key to this repository.
+        . /etc/os-release
+        echo "deb [signed-by=/etc/apt/keyrings/llvm.gpg]" \
+          "https://apt.llvm.org/$VERSION_CODENAME/ llvm-toolchain-$VERSION_CODENAME-22 main" |
+          sudo tee /etc/apt/sources.list.d/llvm.list
+
         sudo apt-get update
         sudo apt-get install -y clang-22 libc++-22-dev libc++abi-22-dev ninja-build
-        rm llvm.sh
