@@ -29,7 +29,7 @@ Examples include:
 - a crash, hang, or uncontrolled output that untrusted data could cause
 - a problem in the build, CI, or published documentation that could let someone run or distribute unwanted code
 
-Report ordinary bugs, such as a sound that is wrong but harmless, with the bug report form. If you are unsure, report privately.
+Report ordinary bugs, such as a sound that is wrong but harmless, with the [issue form](../../issues/new?template=issue.yml). If you are unsure, report privately.
 
 ## Untrusted input
 

@@ -6,7 +6,7 @@ Thank you for your interest.
 
 You can use [issues](../../issues) to report bugs, point out problems in the documentation, or suggest improvements. Please search the existing issues first.
 
-- **Bugs:** use the bug report form.
+- **Bugs, documentation problems, and suggestions:** use the [issue form](../../issues/new?template=issue.yml). Choose **Bug** for something that is wrong, and **Enhancement** for a suggested improvement.
 - **Security vulnerabilities:** do not open a public issue. Follow the [security policy](SECURITY.md).
 
 An issue may not get a quick reply, and not every suggestion will be accepted.
