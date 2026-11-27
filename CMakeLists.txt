@@ -4,12 +4,12 @@ project(glirps
 	VERSION 0.1.0
 	LANGUAGES CXX)
 
-# Tests are built by default only when GLIRPS is the top-level project.
+# Tests are built by default only when this is the top-level project.
 set(glirps_build_tests_default OFF)
 if(PROJECT_IS_TOP_LEVEL)
 	set(glirps_build_tests_default ON)
 endif()
-option(GLIRPS_BUILD_TESTS "Build the GLIRPS unit tests" ${glirps_build_tests_default})
+option(GLIRPS_BUILD_TESTS "Build the unit tests" ${glirps_build_tests_default})
 # Builds `glirps_tsan` and `glirps_tests_tsan`, instrumented with
 # ThreadSanitizer. Needs a Clang toolchain with a TSan runtime (Linux).
 option(GLIRPS_ENABLE_TSAN "Build ThreadSanitizer-instrumented library and concurrency tests" OFF)
@@ -18,20 +18,20 @@ set(glirps_warnings_as_errors_default OFF)
 if(PROJECT_IS_TOP_LEVEL)
 	set(glirps_warnings_as_errors_default ON)
 endif()
-option(GLIRPS_WARNINGS_AS_ERRORS "Treat warnings in GLIRPS's own targets as errors"
+option(GLIRPS_WARNINGS_AS_ERRORS "Treat warnings in this project's own targets as errors"
 	${glirps_warnings_as_errors_default})
 
 set(glirps_install_default OFF)
 if(PROJECT_IS_TOP_LEVEL)
 	set(glirps_install_default ON)
 endif()
-option(GLIRPS_INSTALL "Add install rules and the GLIRPS CMake package" ${glirps_install_default})
+option(GLIRPS_INSTALL "Add install rules and the CMake package" ${glirps_install_default})
 
 set(glirps_build_examples_default OFF)
 if(PROJECT_IS_TOP_LEVEL)
 	set(glirps_build_examples_default ON)
 endif()
-option(GLIRPS_BUILD_EXAMPLES "Build the GLIRPS examples" ${glirps_build_examples_default})
+option(GLIRPS_BUILD_EXAMPLES "Build the examples" ${glirps_build_examples_default})
 
 if(GLIRPS_ENABLE_TSAN AND WIN32)
 	message(FATAL_ERROR "GLIRPS_ENABLE_TSAN is not supported on Windows: LLVM provides no ThreadSanitizer runtime for it.")
@@ -118,8 +118,8 @@ target_compile_features(glirps PRIVATE cxx_std_23)
 # target to run the check.
 set_property(TARGET glirps PROPERTY VERIFY_INTERFACE_HEADER_SETS ON)
 
-# Warning and exception flags for GLIRPS's own targets only, so dependencies
-# and consumers are not affected.
+# Warning and exception flags for this project's own targets only, so
+# dependencies and consumers are not affected.
 set(glirps_compile_options "")
 if(MSVC)
 	list(APPEND glirps_compile_options /EHsc)
@@ -146,7 +146,7 @@ target_compile_options(glirps PRIVATE ${glirps_compile_options})
 
 # An opt-in ThreadSanitizer-instrumented build of the same sources. TSan only
 # tracks happens-before for instrumented code, so a concurrency test that must
-# observe races inside GLIRPS links this library instead of `glirps`.
+# observe races inside the library links this build instead of `glirps`.
 if(GLIRPS_ENABLE_TSAN)
 	add_library(glirps_tsan STATIC ${glirps_sources})
 	add_library(glirps::glirps_tsan ALIAS glirps_tsan)
@@ -161,7 +161,7 @@ if(GLIRPS_ENABLE_TSAN)
 	target_link_options(glirps_tsan PUBLIC -fsanitize=thread)
 endif()
 
-# Documentation target, only when GLIRPS is the top-level project and Doxygen is
+# Documentation target, only when this is the top-level project and Doxygen is
 # installed.
 if(PROJECT_IS_TOP_LEVEL)
 	find_package(Doxygen QUIET)
@@ -172,7 +172,7 @@ if(PROJECT_IS_TOP_LEVEL AND DOXYGEN_FOUND)
 			GLIRPS_DOCS_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/docs
 			${DOXYGEN_EXECUTABLE} Doxyfile
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-		COMMENT "Generating GLIRPS API documentation"
+		COMMENT "Generating API documentation"
 		VERBATIM)
 endif()
 

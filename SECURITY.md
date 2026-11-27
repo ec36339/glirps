@@ -8,7 +8,7 @@ Security fixes are made on `develop`. Older tags and commits do not get separate
 
 **Please do not report a new vulnerability in a public issue.**
 
-[Report it privately on GitHub](https://github.com/ec36339/glirps/security/advisories/new).
+[Report it privately on GitHub](../../security/advisories/new).
 
 Please include:
 
@@ -19,7 +19,7 @@ Please include:
 
 Leave out personal data, passwords, tokens, and other secrets.
 
-GLIRPS is maintained in spare time, so no response or fix time is guaranteed.
+This project is maintained in spare time, so no response or fix time is guaranteed.
 
 ## What to report privately
 
@@ -33,4 +33,4 @@ Report ordinary bugs, such as a sound that is wrong but harmless, with the bug r
 
 ## Untrusted input
 
-Do not assume that GLIRPS safely handles sound programs from untrusted sources. Check such data in your own program. Known problems are listed in the [issue tracker](https://github.com/ec36339/glirps/issues).
+Do not assume that GLIRPS safely handles sound programs from untrusted sources. Check such data in your own program. Known problems are listed in the [issue tracker](../../issues).

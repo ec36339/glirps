@@ -22,9 +22,9 @@
 #include <cstdint>
 
 /// @namespace glirps
-/// GLIRPS, a procedural sound-effect synthesis core: sound programs,
-/// parameter blocks, and the free functions that create, drive, and render a
-/// synth or a single block renderer.
+/// GLIRPS, Retro sound effect synthesizer for games inspired by the 6581/8580
+/// SID: sound programs, parameter blocks, and the free functions that create,
+/// drive, and render a synth or a single block renderer.
 
 /// @namespace glirps::shims
 /// The C++ shims of Doxygen group `shims`: layout-guaranteed stand-ins for
