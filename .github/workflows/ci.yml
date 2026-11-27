@@ -125,7 +125,7 @@ jobs:
       - name: Check the installed package
         run: bash .github/scripts/check-core-package.sh out/build/linux-package out/install/linux-package
 
-  # Other projects can use GLIRPS through FetchContent and as an installed
+  # Other projects can use the library through FetchContent and as an installed
   # package.
   consumers:
     name: Consumers

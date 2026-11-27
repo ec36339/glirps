@@ -95,7 +95,7 @@ target_compile_options(glirps_tests PRIVATE ${glirps_compile_options})
 add_test(NAME glirps_tests COMMAND glirps_tests)
 
 # The same concurrency test, linked against the instrumented `glirps_tsan` so
-# ThreadSanitizer can observe races inside GLIRPS. Also built into
+# ThreadSanitizer can observe races inside the library. Also built into
 # `glirps_tests` against `glirps`.
 if(GLIRPS_ENABLE_TSAN)
 	# Does not compile `ScopedAllocationCounter.cpp`: its global `operator new`

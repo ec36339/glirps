@@ -1,11 +1,11 @@
 name: Bug report
-description: Report something in GLIRPS that does not work as expected.
+description: Report something that does not work as expected.
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        **This issue will be public.** Do not report a new security vulnerability here. Follow the [security policy](https://github.com/ec36339/glirps/security/policy) instead.
+        **This issue will be public.** Do not report a new security vulnerability here. Follow the [security policy](../security/policy) instead.
 
         Remove personal data, passwords, tokens, and private paths from everything you post.
 
@@ -34,7 +34,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: GLIRPS version
+      label: Version
       description: A tag or commit hash.
       placeholder: v0.1.0
     validations:

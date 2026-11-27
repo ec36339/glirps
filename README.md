@@ -1,6 +1,6 @@
 # GLIRPS
 
-GLIRPS (*Gritty Little Instrument for Retro Procedural Sounds*) is a C++ library that synthesizes game sound effects, modeled on the SID sound chip (MOS 6581/8580). It is not a SID emulator. Sounds are generated at run time from short definitions, so no audio files are needed. The grit is adjustable, from lo-fi to clean.
+GLIRPS, Retro sound effect synthesizer for games inspired by the 6581/8580 SID. It is not a SID emulator. Sounds are generated at run time from short definitions, so no audio files are needed. The grit is adjustable, from lo-fi to clean.
 
 GLIRPS only produces samples; devices, files, timing, and spatial effects are up to your program ([details](docs/INDEX.md#what-it-does-not-do)).
 

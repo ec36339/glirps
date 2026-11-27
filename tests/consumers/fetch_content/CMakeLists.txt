@@ -1,5 +1,5 @@
-# A project that adds GLIRPS through FetchContent. It checks that this gives the
-# library only. By default it uses the checkout it is part of.
+# A project that adds the library through FetchContent. It checks that this
+# gives the library only. By default it uses the checkout it is part of.
 cmake_minimum_required(VERSION 3.24)
 
 project(glirps_fetch_content_consumer LANGUAGES CXX)
@@ -24,7 +24,7 @@ foreach(unwanted IN ITEMS glirps_tests glirps_tests_tsan hello-wav gtest glirps_
 endforeach()
 get_target_property(interface_options glirps INTERFACE_COMPILE_OPTIONS)
 if(interface_options)
-	message(FATAL_ERROR "GLIRPS imposes compile options on consumers: ${interface_options}")
+	message(FATAL_ERROR "The library imposes compile options on consumers:${interface_options}")
 endif()
 
 add_executable(consumer ../main.cpp)

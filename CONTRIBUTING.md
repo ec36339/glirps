@@ -1,10 +1,10 @@
 # Contributing
 
-Thank you for your interest in GLIRPS.
+Thank you for your interest.
 
 ## Issues are welcome
 
-You can use [issues](https://github.com/ec36339/glirps/issues) to report bugs, point out problems in the documentation, or suggest improvements. Please search the existing issues first.
+You can use [issues](../../issues) to report bugs, point out problems in the documentation, or suggest improvements. Please search the existing issues first.
 
 - **Bugs:** use the bug report form.
 - **Security vulnerabilities:** do not open a public issue. Follow the [security policy](SECURITY.md).

@@ -1,9 +1,9 @@
-# Doxygen configuration for the public GLIRPS headers and the guides in `docs`.
+# Doxygen configuration for the public headers and the guides in `docs`.
 # Run from this folder; CMake target `glirps_docs` does so and sets the
 # output folder through the GLIRPS_DOCS_OUTPUT environment variable.
 
 PROJECT_NAME           = "GLIRPS"
-PROJECT_BRIEF          = "Gritty Little Instrument for Retro Procedural Sounds"
+PROJECT_BRIEF          = "GLIRPS, Retro sound effect synthesizer for games inspired by the 6581/8580 SID"
 OUTPUT_DIRECTORY       = $(GLIRPS_DOCS_OUTPUT)
 
 INPUT                  = include docs

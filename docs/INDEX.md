@@ -4,7 +4,9 @@ GLIRPS is a synth sound effect engine for games, built on the model of the MOS 6
 
 It is not a SID emulator. The engine underneath runs in floating point at full resolution and models none of the chip's defects. The crunch that gives it the period character is a separate stage applied on top, dialed by a single number from full hardware grit down to clean modern synthesis.
 
-GLIRPS stands for *Gritty Little Instrument for Retro Procedural Sounds*.
+GLIRPS, Retro sound effect synthesizer for games inspired by the 6581/8580 SID.
+
+The name mimics the sound of a SID arpeggio. It also stands for *Gritty Lo-fi Instrument for Retro Procedural Sounds*, or alternatively *GLIRPS Literally Isn't Reproducing any Particular SID*.
 
 ## What it does not do
 
