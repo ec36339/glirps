@@ -138,6 +138,10 @@ Then open `out/build/debug/docs/html/index.html`.
 
 Start with the [overview](docs/INDEX.md), which links all reference documents. The API reference and the guides of the `develop` branch are published at <https://ec36339.github.io/glirps/>.
 
+## Issues
+
+[Report a bug or request an enhancement](../../issues/new?template=issue.yml). To report a security vulnerability, follow the [security policy](SECURITY.md) instead.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

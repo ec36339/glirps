@@ -1,0 +1,48 @@
+name: Issue
+description: Report a bug or request an enhancement.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This issue will be public.** Do not report a new security vulnerability here. Follow the [security policy](../security/policy) instead.
+
+        Remove personal data, passwords, tokens, and private paths from everything you post.
+
+  # No `default`, so that the reporter has to make the choice.
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - Bug
+        - Enhancement (feature request)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: For a bug, include what you expected and how to reproduce it, if you can. For a sound problem, the sound program values, seed, sample rate, and any changed synth settings help.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: A tag or commit hash.
+      placeholder: v0.1.0
+
+  - type: input
+    id: environment
+    attributes:
+      label: Platform and compiler
+      description: Include the operating system, processor architecture, compiler version, and build type.
+      placeholder: Windows 11, x86-64, clang-cl 20, Release
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error messages
+      render: text
